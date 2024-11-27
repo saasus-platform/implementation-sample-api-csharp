@@ -440,7 +440,7 @@ namespace SampleWebApplication.Controllers
                     TenantId = tenantId,
                     UserId = userId,
                     Email = deleteUser.Email,
-                    DeleteAt = DateTime.UtcNow
+                    DeleteAt = DateTime.Now
                 };
 
                 _dbContext.DeleteUserLogs.Add(deleteLog);
