@@ -80,7 +80,17 @@ See the documentation [API implementation using SaaS Platform](https://docs.saas
    - Select `LocalFeed` as the package source.
    - Search for `saasus-sdk-csharp` and install the package.
 
-### 4. Configure the Environment
+### 4. Configure the Project in Visual Studio
+
+1. **Open Visual Studio as an Administrator**  
+   Ensure you open Visual Studio with administrative privileges to configure the application URL.
+
+2. **Set the application URL**
+   - Right-click the project in Solution Explorer and select **Properties**.
+   - Go to the **Web** tab.
+   - Set the **Project URL** to `http://localhost:80/`.
+
+### 5. Configure the Environment
 
 Edit the `Web.config` file in the `SampleWebApplication` directory to set the SaaSus API credentials. Add or modify the following entries:
 
@@ -96,7 +106,7 @@ Edit the `Web.config` file in the `SampleWebApplication` directory to set the Sa
 
 Replace `xxxxxxxxxx` with the values from the SaaSus Admin Console.
 
-### 5. Build and Run the Project
+### 6. Build and Run the Project
 
 1. Open the project in Visual Studio.
 2. Build the project in **Release** or **Debug** mode.
