@@ -66,12 +66,10 @@ See the documentation [API implementation using SaaS Platform](https://docs.saas
       - **Source**: `C:\LocalNuGetFeed`
    - Save the changes by clicking **OK**.
 
-### 3. Clone the Sample API Project
+### 3. Open the .NET Framework 4.8 project in Visual Studio
 
-1. **Navigate to the .NET Framework 4.8 project directory**
-   ```bash
-   cd implementation-sample-api-csharp/SampleWebApplication
-   ```
+1. **Open the .NET Framework 4.8 project in Visual Studio**  
+   Open SampleWebApplication.sln located in implementation-sample-api-csharp/SampleWebApplication/ using Visual Studio.
 
 2. **Install the SaaSus SDK**  
    Use the local NuGet feed to install the SaaSus SDK package:
