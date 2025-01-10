@@ -23,13 +23,13 @@ namespace SampleWebApp
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // Kestrel‚Ìƒ|[ƒgİ’è
+            // Kestrelã®ãƒãƒ¼ãƒˆè¨­å®š
             builder.WebHost.ConfigureKestrel(options =>
             {
                 options.ListenAnyIP(80);
             });
 
-            // CORSƒ|ƒŠƒV[‚Ì“o˜^
+            // CORSãƒãƒªã‚·ãƒ¼ã®ç™»éŒ²
             builder.Services.AddCors(options =>
             {
                 options.AddPolicy("CorsPolicy", policyBuilder =>
@@ -41,16 +41,16 @@ namespace SampleWebApp
                 });
             });
 
-            // Swagger‚Ìİ’è
+            // Swaggerã®è¨­å®š
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
-            // appsettings.json ‚Ì“Ç‚İ‚İ
+            // appsettings.json ã®èª­ã¿è¾¼ã¿
             var config = new ConfigurationBuilder()
                 .AddJsonFile("appsettings.json")
                 .Build();
 
-            // •K—v‚Èİ’è’l‚ğŠÂ‹«•Ï”‚Æ‚µ‚Ä“o˜^
+            // å¿…è¦ãªè¨­å®šå€¤ã‚’ç’°å¢ƒå¤‰æ•°ã¨ã—ã¦ç™»éŒ²
             Environment.SetEnvironmentVariable("SAASUS_API_URL_BASE", config["SaasusSettings:SAASUS_API_URL_BASE"] ?? string.Empty);
             Environment.SetEnvironmentVariable("SAASUS_SECRET_KEY", config["SaasusSettings:SAASUS_SECRET_KEY"] ?? string.Empty);
             Environment.SetEnvironmentVariable("SAASUS_API_KEY", config["SaasusSettings:SAASUS_API_KEY"] ?? string.Empty);
@@ -63,24 +63,24 @@ namespace SampleWebApp
                 throw new InvalidOperationException("DATABASE_URL is not set in the environment variables.");
             }
 
-            // DbContext‚Ìİ’è
+            // DbContextã®è¨­å®š
             builder.Services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseNpgsql(databaseUrl));
 
             var app = builder.Build();
 
-            // ŠJ”­ŠÂ‹«‚Å‚Ì‚İSwagger‚ğ—LŒø‰»
+            // é–‹ç™ºç’°å¢ƒã§ã®ã¿Swaggerã‚’æœ‰åŠ¹åŒ–
             if (app.Environment.IsDevelopment())
             {
                 app.UseSwagger();
                 app.UseSwaggerUI();
             }
 
-            // CORSƒ|ƒŠƒV[‚ğ“K—p
+            // CORSãƒãƒªã‚·ãƒ¼ã‚’é©ç”¨
             app.UseCors("CorsPolicy");
 
 
-            // Referer‚ğİ’è‚·‚é‹¤’ÊƒNƒ‰ƒCƒAƒ“ƒgİ’è
+            // Refererã‚’è¨­å®šã™ã‚‹å…±é€šã‚¯ãƒ©ã‚¤ã‚¢ãƒ³ãƒˆè¨­å®š
             dynamic CreateClientConfiguration(Func<Configuration, dynamic> configSelector, HttpContext context)
             {
                 var config = new Configuration();
@@ -94,7 +94,7 @@ namespace SampleWebApp
                 return clientConfig;
             }
 
-            // Bearerƒg[ƒNƒ“‚ğæ“¾
+            // Bearerãƒˆãƒ¼ã‚¯ãƒ³ã‚’å–å¾—
             string? GetBearerToken(HttpContext context)
             {
                 if (context.Request.Headers.TryGetValue("Authorization", out var authHeader) &&
@@ -105,7 +105,7 @@ namespace SampleWebApp
                 return null;
             }
 
-            // ƒGƒ‰[ƒnƒ“ƒhƒŠƒ“ƒO‹¤’Êˆ—
+            // ã‚¨ãƒ©ãƒ¼ãƒãƒ³ãƒ‰ãƒªãƒ³ã‚°å…±é€šå‡¦ç†
             IResult HandleApiException(Exception ex)
             {
                 if (ex is authapi.Client.ApiException authApiEx)
@@ -158,8 +158,8 @@ namespace SampleWebApp
                     var credentialApi = new CredentialApi(authApiClientConfig);
                     var credentials = await credentialApi.GetAuthCredentialsAsync(code, "tempCodeAuth", null);
 
-                    // JSONŒ`®‚ÅƒŒƒXƒ|ƒ“ƒX‚ğ•Ô‚·
-                    var jsonResponse = credentials.ToJson(); // SDK ‚ª’ñ‹Ÿ‚·‚é ToJson ƒƒ\ƒbƒh‚ğ—˜—p
+                    // JSONå½¢å¼ã§ãƒ¬ã‚¹ãƒãƒ³ã‚¹ã‚’è¿”ã™
+                    var jsonResponse = credentials.ToJson(); // SDK ãŒæä¾›ã™ã‚‹ ToJson ãƒ¡ã‚½ãƒƒãƒ‰ã‚’åˆ©ç”¨
                     return Results.Text(jsonResponse, "application/json");
                 }
                 catch (Exception ex)
@@ -182,8 +182,8 @@ namespace SampleWebApp
                     var credentialApi = new CredentialApi(authApiClientConfig);
                     var credentials = await credentialApi.GetAuthCredentialsAsync(null, "refreshTokenAuth", refreshToken);
 
-                    // JSONŒ`®‚ÅƒŒƒXƒ|ƒ“ƒX‚ğ•Ô‚·
-                    var jsonResponse = credentials.ToJson(); // SDK ‚ª’ñ‹Ÿ‚·‚é ToJson ƒƒ\ƒbƒh‚ğ—˜—p
+                    // JSONå½¢å¼ã§ãƒ¬ã‚¹ãƒãƒ³ã‚¹ã‚’è¿”ã™
+                    var jsonResponse = credentials.ToJson(); // SDK ãŒæä¾›ã™ã‚‹ ToJson ãƒ¡ã‚½ãƒƒãƒ‰ã‚’åˆ©ç”¨
                     return Results.Text(jsonResponse, "application/json");
                 }
                 catch (Exception ex)
@@ -206,8 +206,8 @@ namespace SampleWebApp
                     var userInfoApi = new UserInfoApi(authApiClientConfig);
                     var userInfo = await userInfoApi.GetUserInfoAsync(token);
 
-                    // JSONŒ`®‚ÅƒŒƒXƒ|ƒ“ƒX‚ğ•Ô‚·
-                    var jsonResponse = userInfo.ToJson(); // SDK ‚ª’ñ‹Ÿ‚·‚é ToJson ƒƒ\ƒbƒh‚ğ—˜—p
+                    // JSONå½¢å¼ã§ãƒ¬ã‚¹ãƒãƒ³ã‚¹ã‚’è¿”ã™
+                    var jsonResponse = userInfo.ToJson(); // SDK ãŒæä¾›ã™ã‚‹ ToJson ãƒ¡ã‚½ãƒƒãƒ‰ã‚’åˆ©ç”¨
                     return Results.Text(jsonResponse, "application/json");
                 }
                 catch (Exception ex)
@@ -235,7 +235,7 @@ namespace SampleWebApp
                         return Results.BadRequest("No tenant information available.");
                     }
 
-                    // ƒNƒGƒŠƒpƒ‰ƒ[ƒ^‚©‚ç tenant_id ‚ğæ“¾
+                    // ã‚¯ã‚¨ãƒªãƒ‘ãƒ©ãƒ¡ãƒ¼ã‚¿ã‹ã‚‰ tenant_id ã‚’å–å¾—
                     var tenantId = context.Request.Query["tenant_id"].ToString();
                     if (string.IsNullOrEmpty(tenantId))
                     {
@@ -243,7 +243,7 @@ namespace SampleWebApp
                         return Results.BadRequest("tenant_id query parameter is required");
                     }
 
-                    // ƒ†[ƒU[‚ªŠ‘®‚µ‚Ä‚¢‚éƒeƒiƒ“ƒg‚©Šm”F
+                    // ãƒ¦ãƒ¼ã‚¶ãƒ¼ãŒæ‰€å±ã—ã¦ã„ã‚‹ãƒ†ãƒŠãƒ³ãƒˆã‹ç¢ºèª
                     var isBelongingTenant = userInfo.Tenants.Any(t => t.Id == tenantId);
                     if (!isBelongingTenant)
                     {
@@ -252,7 +252,7 @@ namespace SampleWebApp
                     }
 
 
-                    // ƒeƒiƒ“ƒgƒ†[ƒU[‚ğæ“¾
+                    // ãƒ†ãƒŠãƒ³ãƒˆãƒ¦ãƒ¼ã‚¶ãƒ¼ã‚’å–å¾—
                     var tenantUserApi = new TenantUserApi(authApiClientConfig);
                     var users = await tenantUserApi.GetTenantUsersAsync(tenantId);
                     if (users == null || users.VarUsers == null)
@@ -261,8 +261,8 @@ namespace SampleWebApp
                         return Results.Problem("Internal server error", statusCode: 500);
                     }
 
-                    // JSONŒ`®‚ÅƒŒƒXƒ|ƒ“ƒX‚ğ•Ô‚·
-                    var jsonResponse = JsonConvert.SerializeObject(users.VarUsers); // Newtonsoft.Json ‚ğ—˜—p
+                    // JSONå½¢å¼ã§ãƒ¬ã‚¹ãƒãƒ³ã‚¹ã‚’è¿”ã™
+                    var jsonResponse = JsonConvert.SerializeObject(users.VarUsers); // Newtonsoft.Json ã‚’åˆ©ç”¨
                     return Results.Text(jsonResponse, "application/json");
                 }
                 catch (Exception ex)
@@ -290,7 +290,7 @@ namespace SampleWebApp
                         return Results.BadRequest("No tenant information available.");
                     }
 
-                    // ƒNƒGƒŠƒpƒ‰ƒ[ƒ^‚©‚ç tenant_id ‚ğæ“¾
+                    // ã‚¯ã‚¨ãƒªãƒ‘ãƒ©ãƒ¡ãƒ¼ã‚¿ã‹ã‚‰ tenant_id ã‚’å–å¾—
                     var tenantId = context.Request.Query["tenant_id"].ToString();
                     if (string.IsNullOrEmpty(tenantId))
                     {
@@ -298,7 +298,7 @@ namespace SampleWebApp
                         return Results.BadRequest("tenant_id query parameter is required");
                     }
 
-                    // ƒ†[ƒU[‚ªŠ‘®‚µ‚Ä‚¢‚éƒeƒiƒ“ƒg‚©Šm”F
+                    // ãƒ¦ãƒ¼ã‚¶ãƒ¼ãŒæ‰€å±ã—ã¦ã„ã‚‹ãƒ†ãƒŠãƒ³ãƒˆã‹ç¢ºèª
                     var isBelongingTenant = userInfo.Tenants.Any(t => t.Id == tenantId);
                     if (!isBelongingTenant)
                     {
@@ -306,15 +306,15 @@ namespace SampleWebApp
                         return Results.Problem("Tenant that does not belong", statusCode: 403);
                     }
 
-                    // ƒeƒiƒ“ƒg‘®«‚Ìæ“¾
+                    // ãƒ†ãƒŠãƒ³ãƒˆå±æ€§ã®å–å¾—
                     var tenantAttributeApi = new TenantAttributeApi(authApiClientConfig);
                     var tenantAttributes = await tenantAttributeApi.GetTenantAttributesAsync();
 
-                    // ƒeƒiƒ“ƒgî•ñ‚Ìæ“¾
+                    // ãƒ†ãƒŠãƒ³ãƒˆæƒ…å ±ã®å–å¾—
                     var tenantApi = new TenantApi(authApiClientConfig);
                     var tenant = await tenantApi.GetTenantAsync(tenantId);
 
-                    // Œ‹‰Ê‚ğŠi”[‚·‚é«‘
+                    // çµæœã‚’æ ¼ç´ã™ã‚‹è¾æ›¸
                     var result = new Dictionary<string, Dictionary<string, object?>>();
 
                     foreach (var tenantAttribute in tenantAttributes.VarTenantAttributes)
@@ -330,7 +330,7 @@ namespace SampleWebApp
                         result[attributeName] = detail;
                     }
 
-                    // JSONŒ`®‚Å•Ô‹p
+                    // JSONå½¢å¼ã§è¿”å´
                     return Results.Json(result);
                 }
                 catch (Exception ex)
@@ -353,8 +353,8 @@ namespace SampleWebApp
                     var userAttributeApi = new UserAttributeApi(authApiClientConfig);
                     var userAttributes = await userAttributeApi.GetUserAttributesAsync();
 
-                    // JSONŒ`®‚ÅƒŒƒXƒ|ƒ“ƒX‚ğ•Ô‚·
-                    var jsonResponse = userAttributes.ToJson(); // SDK ‚ª’ñ‹Ÿ‚·‚é ToJson ƒƒ\ƒbƒh‚ğ—˜—p
+                    // JSONå½¢å¼ã§ãƒ¬ã‚¹ãƒãƒ³ã‚¹ã‚’è¿”ã™
+                    var jsonResponse = userAttributes.ToJson(); // SDK ãŒæä¾›ã™ã‚‹ ToJson ãƒ¡ã‚½ãƒƒãƒ‰ã‚’åˆ©ç”¨
                     return Results.Text(jsonResponse, "application/json");
                 }
                 catch (Exception ex)
@@ -382,8 +382,8 @@ namespace SampleWebApp
                     var pricingPlansApi = new PricingPlansApi(pricingConfig);
                     var plan = await pricingPlansApi.GetPricingPlanAsync(plan_id);
 
-                    // JSONŒ`®‚ÅƒŒƒXƒ|ƒ“ƒX‚ğ•Ô‚·
-                    var jsonResponse = plan.ToJson(); // SDK ‚ª’ñ‹Ÿ‚·‚é ToJson ƒƒ\ƒbƒh‚ğ—˜—p
+                    // JSONå½¢å¼ã§ãƒ¬ã‚¹ãƒãƒ³ã‚¹ã‚’è¿”ã™
+                    var jsonResponse = plan.ToJson(); // SDK ãŒæä¾›ã™ã‚‹ ToJson ãƒ¡ã‚½ãƒƒãƒ‰ã‚’åˆ©ç”¨
                     return Results.Text(jsonResponse, "application/json");
                 }
                 catch (Exception ex)
@@ -401,7 +401,7 @@ namespace SampleWebApp
                     return Results.Unauthorized();
                 }
 
-                // ƒoƒŠƒf[ƒVƒ‡ƒ“‚ÌÀs
+                // ãƒãƒªãƒ‡ãƒ¼ã‚·ãƒ§ãƒ³ã®å®Ÿè¡Œ
                 var validationResults = new List<ValidationResult>();
                 var validationContext = new ValidationContext(requestBody);
                 if (!Validator.TryValidateObject(requestBody, validationContext, validationResults, true))
@@ -417,7 +417,7 @@ namespace SampleWebApp
 
                 try
                 {
-                    // ƒ†[ƒU[î•ñ‚Ìæ“¾
+                    // ãƒ¦ãƒ¼ã‚¶ãƒ¼æƒ…å ±ã®å–å¾—
                     var authApiClientConfig = CreateClientConfiguration(c => c.GetAuthApiClientConfig(), context);
                     var userInfoApi = new UserInfoApi(authApiClientConfig);
                     var userInfo = await userInfoApi.GetUserInfoAsync(token);
@@ -426,7 +426,7 @@ namespace SampleWebApp
                         return Results.BadRequest("No tenant information available.");
                     }
 
-                    // ƒ†[ƒU[‚ªŠ‘®‚µ‚Ä‚¢‚éƒeƒiƒ“ƒg‚©Šm”F
+                    // ãƒ¦ãƒ¼ã‚¶ãƒ¼ãŒæ‰€å±ã—ã¦ã„ã‚‹ãƒ†ãƒŠãƒ³ãƒˆã‹ç¢ºèª
                     var isBelongingTenant = userInfo.Tenants.Any(t => t.Id == tenantId);
                     if (!isBelongingTenant)
                     {
@@ -435,11 +435,11 @@ namespace SampleWebApp
                     }
 
 
-                    // ƒ†[ƒU[‘®«‚Ìæ“¾
+                    // ãƒ¦ãƒ¼ã‚¶ãƒ¼å±æ€§ã®å–å¾—
                     var userAttributeApi = new UserAttributeApi(authApiClientConfig);
                     var userAttributes = await userAttributeApi.GetUserAttributesAsync();
 
-                    // ‘®«‚ÌŒ^‚É‰‚¶‚½ˆ—
+                    // å±æ€§ã®å‹ã«å¿œã˜ãŸå‡¦ç†
                     foreach (var attribute in userAttributes.VarUserAttributes)
                     {
                         var attributeName = attribute.AttributeName;
@@ -451,21 +451,21 @@ namespace SampleWebApp
                         }
                     }
 
-                    // SaaS ƒ†[ƒU[‚Ì“o˜^
+                    // SaaS ãƒ¦ãƒ¼ã‚¶ãƒ¼ã®ç™»éŒ²
                     var saasUserApi = new SaasUserApi(authApiClientConfig);
                     var createSaasUserParam = new CreateSaasUserParam(email, password);
                     await saasUserApi.CreateSaasUserAsync(createSaasUserParam);
 
-                    // ƒeƒiƒ“ƒgƒ†[ƒU[‚Ì“o˜^
+                    // ãƒ†ãƒŠãƒ³ãƒˆãƒ¦ãƒ¼ã‚¶ãƒ¼ã®ç™»éŒ²
                     var tenantUserApi = new TenantUserApi(authApiClientConfig);
                     var createTenantUserParam = new CreateTenantUserParam(email, userAttributeValues);
                     var tenantUser = await tenantUserApi.CreateTenantUserAsync(tenantId, createTenantUserParam);
 
-                    // ƒ[ƒ‹‚Ìæ“¾
+                    // ãƒ­ãƒ¼ãƒ«ã®å–å¾—
                     var roleApi = new RoleApi(authApiClientConfig);
                     var roles = await roleApi.GetRolesAsync();
 
-                    // ƒ[ƒ‹‚Ìİ’è
+                    // ãƒ­ãƒ¼ãƒ«ã®è¨­å®š
                     string addRole = "admin";
                     if (roles.VarRoles.Any(r => r.RoleName == "user"))
                     {
@@ -492,7 +492,7 @@ namespace SampleWebApp
                     return Results.Unauthorized();
                 }
 
-                // ƒoƒŠƒf[ƒVƒ‡ƒ“‚ÌÀs
+                // ãƒãƒªãƒ‡ãƒ¼ã‚·ãƒ§ãƒ³ã®å®Ÿè¡Œ
                 var validationResults = new List<ValidationResult>();
                 var validationContext = new ValidationContext(requestBody);
                 if (!Validator.TryValidateObject(requestBody, validationContext, validationResults, true))
@@ -506,7 +506,7 @@ namespace SampleWebApp
 
                 try
                 {
-                    // ƒ†[ƒU[î•ñ‚Ìæ“¾
+                    // ãƒ¦ãƒ¼ã‚¶ãƒ¼æƒ…å ±ã®å–å¾—
                     var authApiClientConfig = CreateClientConfiguration(c => c.GetAuthApiClientConfig(), context);
                     var userInfoApi = new UserInfoApi(authApiClientConfig);
                     var userInfo = userInfoApi.GetUserInfo(token);
@@ -515,7 +515,7 @@ namespace SampleWebApp
                         return Results.BadRequest("No tenant information available.");
                     }
 
-                    // ƒ†[ƒU[‚ªŠ‘®‚µ‚Ä‚¢‚éƒeƒiƒ“ƒg‚©Šm”F
+                    // ãƒ¦ãƒ¼ã‚¶ãƒ¼ãŒæ‰€å±ã—ã¦ã„ã‚‹ãƒ†ãƒŠãƒ³ãƒˆã‹ç¢ºèª
                     var isBelongingTenant = userInfo.Tenants.Any(t => t.Id == tenantId);
                     if (!isBelongingTenant)
                     {
@@ -523,13 +523,13 @@ namespace SampleWebApp
                         return Results.Problem("Tenant that does not belong", statusCode: 403);
                     }
 
-                    // ƒ†[ƒU[íœˆ—
-                    // SaaSus‚©‚çƒ†[ƒU[î•ñ‚ğæ“¾
+                    // ãƒ¦ãƒ¼ã‚¶ãƒ¼å‰Šé™¤å‡¦ç†
+                    // SaaSusã‹ã‚‰ãƒ¦ãƒ¼ã‚¶ãƒ¼æƒ…å ±ã‚’å–å¾—
                     var tenantUserApi = new TenantUserApi(authApiClientConfig);
                     var deleteUser = tenantUserApi.GetTenantUser(tenantId, userId);
                     await tenantUserApi.DeleteTenantUserAsync(tenantId, userId);
 
-                    // ƒf[ƒ^ƒx[ƒX‚ÉíœƒƒO‚ğ•Û‘¶
+                    // ãƒ‡ãƒ¼ã‚¿ãƒ™ãƒ¼ã‚¹ã«å‰Šé™¤ãƒ­ã‚°ã‚’ä¿å­˜
                     var deleteLog = new DeleteUserLog
                     {
                         TenantId = tenantId,
@@ -549,14 +549,14 @@ namespace SampleWebApp
 
             app.MapGet("/delete_user_log", async (HttpContext context, ApplicationDbContext dbContext) =>
             {
-                // ƒNƒGƒŠƒpƒ‰ƒ[ƒ^‚©‚ç `tenant_id` ‚ğæ“¾
+                // ã‚¯ã‚¨ãƒªãƒ‘ãƒ©ãƒ¡ãƒ¼ã‚¿ã‹ã‚‰ `tenant_id` ã‚’å–å¾—
                 var tenantId = context.Request.Query["tenant_id"].ToString();
                 if (string.IsNullOrEmpty(tenantId))
                 {
                     return Results.BadRequest(new { error = "tenant_id query parameter is required" });
                 }
 
-                // ƒ†[ƒU[î•ñ‚ğæ“¾
+                // ãƒ¦ãƒ¼ã‚¶ãƒ¼æƒ…å ±ã‚’å–å¾—
                 var token = GetBearerToken(context);
                 if (string.IsNullOrEmpty(token))
                 {
@@ -574,26 +574,26 @@ namespace SampleWebApp
                         return Results.BadRequest(new { error = "No tenants found for the user" });
                     }
 
-                    // w’è‚³‚ê‚½ƒeƒiƒ“ƒgID‚ªƒ†[ƒU[‚ÌŠ‘®‚·‚éƒeƒiƒ“ƒg‚ÉŠÜ‚Ü‚ê‚é‚©Šm”F
+                    // æŒ‡å®šã•ã‚ŒãŸãƒ†ãƒŠãƒ³ãƒˆIDãŒãƒ¦ãƒ¼ã‚¶ãƒ¼ã®æ‰€å±ã™ã‚‹ãƒ†ãƒŠãƒ³ãƒˆã«å«ã¾ã‚Œã‚‹ã‹ç¢ºèª
                     var isBelongingTenant = userInfo.Tenants.Any(t => t.Id == tenantId);
                     if (!isBelongingTenant)
                     {
                         return Results.BadRequest(new { error = "Tenant that does not belong" });
                     }
 
-                    // ƒf[ƒ^ƒx[ƒX‚©‚çíœƒƒO‚ğæ“¾
+                    // ãƒ‡ãƒ¼ã‚¿ãƒ™ãƒ¼ã‚¹ã‹ã‚‰å‰Šé™¤ãƒ­ã‚°ã‚’å–å¾—
                     var deleteUserLogs = await dbContext.DeleteUserLogs
                         .Where(log => log.TenantId == tenantId)
                         .ToListAsync();
 
-                    // ƒŒƒXƒ|ƒ“ƒXƒf[ƒ^‚Ì®Œ`
+                    // ãƒ¬ã‚¹ãƒãƒ³ã‚¹ãƒ‡ãƒ¼ã‚¿ã®æ•´å½¢
                     var responseData = deleteUserLogs.Select(log => new
                     {
                         id = log.Id,
                         tenant_id = log.TenantId,
                         user_id = log.UserId,
                         email = log.Email,
-                        delete_at = log.DeleteAt.ToString("o") // ISO 8601Œ`®‚É•ÏŠ·
+                        delete_at = log.DeleteAt.ToString("o") // ISO 8601å½¢å¼ã«å¤‰æ›
                     });
 
                     return Results.Ok(responseData);
@@ -659,7 +659,7 @@ namespace SampleWebApp
         }
     }
 
-    // DbContext’è‹`
+    // DbContextå®šç¾©
     public class ApplicationDbContext : DbContext
     {
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options) { }
