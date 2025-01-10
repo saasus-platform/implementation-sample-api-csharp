@@ -604,6 +604,126 @@ namespace SampleWebApp
                     return Results.Problem(detail: ex.Message, statusCode: 500);
                 }
             });
+
+            app.MapGet("/tenant_attributes_list", async (HttpContext context) =>
+            {
+                var token = GetBearerToken(context);
+                if (string.IsNullOrEmpty(token))
+                {
+                    return Results.Unauthorized();
+                }
+
+                try
+                {
+                    var authApiClientConfig = CreateClientConfiguration(c => c.GetAuthApiClientConfig(), context);
+                    var tenantAttributeApi = new TenantAttributeApi(authApiClientConfig);
+                    var tenantAttributes = await tenantAttributeApi.GetTenantAttributesAsync();
+
+                    // JSON形式でレスポンスを返す
+                    var jsonResponse = tenantAttributes.ToJson(); // SDK が提供する ToJson メソッドを利用
+                    return Results.Text(jsonResponse, "application/json");
+                }
+                catch (Exception ex)
+                {
+                    return HandleApiException(ex);
+                }
+            });
+
+            app.MapPost("/self_sign_up", async ([FromBody] SelfSignUpRequest requestBody, HttpContext context) =>
+            {
+                var token = GetBearerToken(context);
+                if (string.IsNullOrEmpty(token))
+                {
+                    return Results.Unauthorized();
+                }
+
+                // バリデーションの実行
+                var validationResults = new List<ValidationResult>();
+                var validationContext = new ValidationContext(requestBody);
+                if (!Validator.TryValidateObject(requestBody, validationContext, validationResults, true))
+                {
+                    var errors = validationResults.Select(vr => new { Field = vr.MemberNames.FirstOrDefault(), Error = vr.ErrorMessage });
+                    return Results.BadRequest(new { error = "Validation failed.", details = errors });
+                }
+
+                string tenantName = requestBody.TenantName;
+                var userAttributeValues = requestBody.UserAttributeValues ?? new Dictionary<string, object>();
+                var tenantAttributeValues = requestBody.TenantAttributeValues ?? new Dictionary<string, object>();
+
+                try
+                {
+                    // ユーザー情報の取得
+                    var authApiClientConfig = CreateClientConfiguration(c => c.GetAuthApiClientConfig(), context);
+                    var userInfoApi = new UserInfoApi(authApiClientConfig);
+                    var userInfo = await userInfoApi.GetUserInfoAsync(token);
+                    if (userInfo.Tenants != null && userInfo.Tenants.Any())
+                    {
+                        return Results.BadRequest("User is already associated with a tenant.");
+                    }
+
+                    // テナント属性の取得
+                    var tenantAttributeApi = new TenantAttributeApi(authApiClientConfig);
+                    var tenantAttributes = await tenantAttributeApi.GetTenantAttributesAsync();
+
+                    // 属性の型に応じた処理
+                    foreach (var attribute in tenantAttributes.VarTenantAttributes)
+                    {
+                        var attributeName = attribute.AttributeName;
+                        var attributeType = attribute.AttributeType.ToString();
+
+                        if (tenantAttributeValues.ContainsKey(attributeName))
+                        {
+                            tenantAttributeValues[attributeName] = ConvertToExpectedType(tenantAttributeValues[attributeName], attributeType);
+                        }
+                    }
+
+                    // テナントの登録
+                    var tenantApi = new TenantApi(authApiClientConfig);
+                    var tenantProps = new TenantProps(
+                        name: tenantName,
+                        attributes: tenantAttributeValues,
+                        backOfficeStaffEmail: userInfo.Email
+                    );
+
+
+                    var createdTenant = await tenantApi.CreateTenantAsync(tenantProps);
+                    var tenantId = createdTenant.Id;
+
+                    // ユーザー属性の取得
+                    var userAttributeApi = new UserAttributeApi(authApiClientConfig);
+                    var userAttributes = await userAttributeApi.GetUserAttributesAsync();
+
+                     // 属性の型に応じた処理
+                    foreach (var attribute in userAttributes.VarUserAttributes)
+                    {
+                        var attributeName = attribute.AttributeName;
+                        var attributeType = attribute.AttributeType.ToString();
+
+                        if (userAttributeValues.ContainsKey(attributeName))
+                        {
+                            userAttributeValues[attributeName] = ConvertToExpectedType(userAttributeValues[attributeName], attributeType);
+                        }
+                    }
+
+                    // テナントユーザーの登録
+                    var tenantUserApi = new TenantUserApi(authApiClientConfig);
+                    var createTenantUserParam = new CreateTenantUserParam(userInfo.Email, userAttributeValues);
+                    var tenantUser = await tenantUserApi.CreateTenantUserAsync(tenantId, createTenantUserParam);
+
+
+                    // ロールを設定
+                    var createTenantUserRolesParam = new CreateTenantUserRolesParam(new List<string> { "admin" });
+                    await tenantUserApi.CreateTenantUserRolesAsync(tenantId, tenantUser.Id, 3, createTenantUserRolesParam);
+
+                    return Results.Ok(new { message = "User successfully registered to the tenant"});
+                }
+                catch (Exception ex)
+                {
+                    Console.Error.WriteLine($"Error: {ex.Message}");
+                    return Results.Problem(detail: ex.Message, statusCode: 500);
+                }
+            });
+
             app.Run();
 
         }
@@ -657,6 +777,17 @@ namespace SampleWebApp
             UserId = string.Empty;
             Email = string.Empty;
         }
+    }
+
+    public class SelfSignUpRequest
+    {
+        [Required]
+        public string TenantName { get; set; } = string.Empty;
+
+        public Dictionary<string, object> UserAttributeValues { get; set; } = new Dictionary<string, object>();
+
+        public Dictionary<string, object> TenantAttributeValues { get; set; } = new Dictionary<string, object>();
+
     }
 
     // DbContext定義
