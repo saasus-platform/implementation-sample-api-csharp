@@ -119,6 +119,31 @@ namespace SampleWebApp
                 return Results.Problem(detail: ex.Message, statusCode: 500);
             }
 
+            static object ConvertToExpectedType(object value, string expectedType)
+            {
+                switch (expectedType.ToLowerInvariant())
+                {
+                    case "string":
+                        return value?.ToString();
+                    case "number":
+                        if (int.TryParse(value?.ToString(), out int numericValue))
+                            return numericValue;
+                        throw new InvalidOperationException("Invalid number value.");
+                    case "boolean":
+                    case "bool":
+                        if (bool.TryParse(value?.ToString(), out bool boolValue))
+                            return boolValue;
+                        throw new InvalidOperationException("Invalid boolean value.");
+                    case "date":
+                        if (DateTime.TryParse(value?.ToString(), out DateTime dateValue))
+                        {
+                            return dateValue.ToString("yyyy-MM-dd");
+                        }
+                        throw new InvalidOperationException("Invalid date value.");
+                    default:
+                        throw new InvalidOperationException($"Unsupported type: {expectedType}");
+                }
+            }
 
             app.MapGet("/credentials", async (HttpContext context, string code) =>
             {
@@ -420,16 +445,9 @@ namespace SampleWebApp
                         var attributeName = attribute.AttributeName;
                         var attributeType = attribute.AttributeType.ToString();
 
-                        if (userAttributeValues.ContainsKey(attributeName) && attributeType.ToLower() == "number")
-                        {
-                            if (int.TryParse(userAttributeValues[attributeName]?.ToString(), out int numericValue))
-                            {
-                                userAttributeValues[attributeName] = numericValue;
-                            }
-                            else
-                            {
-                                return Results.BadRequest(new { error = "Invalid attribute value" });
-                            }
+                        if (userAttributeValues.ContainsKey(attributeName))
+                        {    
+                            userAttributeValues[attributeName] = ConvertToExpectedType(userAttributeValues[attributeName], attributeType);
                         }
                     }
 
