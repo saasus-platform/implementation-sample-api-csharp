@@ -15,14 +15,14 @@ See the documentation [API implementation using SaaS Platform](https://docs.saas
 
 1. **Clone the sample API project repository**
    ```bash
-   git clone git@github.com:Anti-Pattern-Inc/implementation-sample-api-csharp.git
+   git clone git@github.com:saasus-platform/implementation-sample-api-csharp.git
    ```
 
 2. **Clone the SaaSus SDK repository**  
    Clone the SaaSus SDK into the same directory level as the sample API project:
 
    ```bash
-   git clone git@github.com:Anti-Pattern-Inc/saasus-sdk-csharp.git
+   git clone git@github.com:saasus-platform/saasus-sdk-csharp.git
    ```
 
 3. **Navigate to the SaaSus SDK directory**
@@ -153,14 +153,14 @@ docker-compose up -d
 
 1. **Clone the sample API project repository**
    ```bash
-   git clone git@github.com:Anti-Pattern-Inc/implementation-sample-api-csharp.git
+   git clone git@github.com:saasus-platform/implementation-sample-api-csharp.git
    ```
 
 2. **Clone the SaaSus SDK repository**  
    Clone the SaaSus SDK into the same directory level as the sample API project:
 
    ```bash
-   git clone git@github.com:Anti-Pattern-Inc/saasus-sdk-csharp.git
+   git clone git@github.com:saasus-platform/saasus-sdk-csharp.git
    ```
 
 3. **Navigate to the .NET 8 project directory**
