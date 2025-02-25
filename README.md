@@ -15,14 +15,14 @@ See the documentation [API implementation using SaaS Platform](https://docs.saas
 
 1. **Clone the sample API project repository**
    ```bash
-   git clone git@github.com:Anti-Pattern-Inc/implementation-sample-api-csharp.git
+   git clone git@github.com:saasus-platform/implementation-sample-api-csharp.git
    ```
 
 2. **Clone the SaaSus SDK repository**  
    Clone the SaaSus SDK into the same directory level as the sample API project:
 
    ```bash
-   git clone git@github.com:Anti-Pattern-Inc/saasus-sdk-csharp.git
+   git clone git@github.com:saasus-platform/saasus-sdk-csharp.git
    ```
 
 3. **Navigate to the SaaSus SDK directory**
@@ -104,7 +104,44 @@ Edit the `Web.config` file in the `SampleWebApplication` directory to set the Sa
 
 Replace `xxxxxxxxxx` with the values from the SaaSus Admin Console.
 
-### 6. Build and Run the Project
+### 6. Setup the Database (PostgreSQL)
+
+#### Option 1: Using Docker (Recommended)
+
+Run the following command to start the database using Docker:
+
+```sh
+docker-compose up -d
+```
+
+#### Option 2: Install PostgreSQL Manually (For EC2 Windows, No Docker Support)
+
+1. Download **PostgreSQL 13** from the official website:  
+   [PostgreSQL Windows Download](https://www.postgresql.org/download/windows/)
+2. Run the installer and follow the setup instructions:
+   - **Superuser Username:** `postgres` (default, cannot be changed)
+   - **Superuser Password:** `postgres` (recommended for local setup)
+   - **Port:** `5432` (default, leave unchanged)
+3. Open **SQL Shell (psql)**:
+   - Press `Windows + S` and search for **SQL Shell (psql)**.
+   - Click to open it.
+   - Press **Enter** for all prompts until it asks for the password.
+   - Enter the **Superuser Password** set during installation.
+   - You should now see:
+     ```
+     postgres=#
+     ```
+4. Run `psql` and apply `init.sql` using the full path:
+   - **For .NET Framework 4.8:**
+     ```sql
+     \i 'C:/path/to/implementation-sample-api-csharp/SampleWebApplication/init.sql'
+     ```
+   - **For .NET 8:**
+     ```sql
+     \i 'C:/path/to/implementation-sample-api-csharp/SampleWebAppDotNet8/init.sql'
+     ```
+
+### 7. Build and Run the Project
 
 1. Open the project in Visual Studio.
 2. Build the project in **Release** or **Debug** mode.
@@ -116,14 +153,14 @@ Replace `xxxxxxxxxx` with the values from the SaaSus Admin Console.
 
 1. **Clone the sample API project repository**
    ```bash
-   git clone git@github.com:Anti-Pattern-Inc/implementation-sample-api-csharp.git
+   git clone git@github.com:saasus-platform/implementation-sample-api-csharp.git
    ```
 
 2. **Clone the SaaSus SDK repository**  
    Clone the SaaSus SDK into the same directory level as the sample API project:
 
    ```bash
-   git clone git@github.com:Anti-Pattern-Inc/saasus-sdk-csharp.git
+   git clone git@github.com:saasus-platform/saasus-sdk-csharp.git
    ```
 
 3. **Navigate to the .NET 8 project directory**
@@ -155,7 +192,11 @@ Edit the `appsettings.json` file in the `SampleWebAppDotNet8` directory to set t
 
 Replace `xxxxxxxxxx` with the values from the SaaSus Admin Console.
 
-### 4. Build and Run the Project
+### 4. Setup the Database (PostgreSQL)
+
+Follow the same **Windows installation steps** as in the .NET Framework 4.8 section, ensuring you apply the correct `init.sql` for the respective application.
+
+### 5. Build and Run the Project
 
 1. Build the project:
 
