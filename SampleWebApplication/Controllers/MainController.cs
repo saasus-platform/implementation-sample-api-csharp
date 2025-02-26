@@ -634,6 +634,22 @@ namespace SampleWebApplication.Controllers
             }
         }
 
+        [HttpPost]
+        [Route("logout")]
+        public async Task<IHttpActionResult> Logout()
+        {
+            // クッキーを削除
+            var cookie = new HttpCookie("SaaSusRefreshToken")
+            {
+                Expires = System.DateTime.Now.AddDays(-1), // 過去の日付に設定して削除
+                HttpOnly = true
+            };
+
+            HttpContext.Current.Response.Cookies.Add(cookie);
+
+            return Ok(new { message = "Logged out successfully" });
+        }
+
         public class UserRegisterRequest
         {
             [Required(ErrorMessage = "Email is required.")]
