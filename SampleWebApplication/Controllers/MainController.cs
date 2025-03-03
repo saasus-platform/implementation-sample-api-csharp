@@ -512,6 +512,128 @@ namespace SampleWebApplication.Controllers
             }
         }
 
+        // GET /tenant_attributes_list
+        [HttpGet]
+        [Route("tenant_attributes_list")]
+        public async Task<IHttpActionResult> GetTenantAttributes()
+        {
+            try
+            {
+                var token = GetBearerToken(Request);
+                var authApiClientConfig = CreateClientConfiguration(c => c.GetAuthApiClientConfig());
+                var tenantAttributeApi = new TenantAttributeApi(authApiClientConfig);
+                var tenantAttributes = await tenantAttributeApi.GetTenantAttributesAsync();
+
+                return Ok(tenantAttributes);
+            }
+            catch (Exception ex)
+            {
+                return HandleApiException(ex);
+            }
+        }
+
+        // POST /self_sign_up
+        [HttpPost]
+        [Route("self_sign_up")]
+        public async Task<IHttpActionResult> SelfSignUp([FromBody] SelfSignUpRequest request)
+        {
+            // バリデーションのチェック
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            string tenantName = request.TenantName;
+            var userAttributeValues = request.UserAttributeValues ?? new Dictionary<string, object>();
+            var tenantAttributeValues = request.TenantAttributeValues ?? new Dictionary<string, object>();
+
+            try
+            {
+                // Bearerトークンを取得
+                var token = GetBearerToken(Request);
+                // ユーザー情報の取得
+                var authApiClientConfig = CreateClientConfiguration(c => c.GetAuthApiClientConfig());
+                var userInfoApi = new UserInfoApi(authApiClientConfig);
+                var userInfo = await userInfoApi.GetUserInfoAsync(token);
+                if (userInfo.Tenants != null && userInfo.Tenants.Any())
+                {
+                    return BadRequest("User is already associated with a tenant.");
+                }
+
+                // テナント属性の取得
+                var tenantAttributeApi = new TenantAttributeApi(authApiClientConfig);
+                var tenantAttributes = await tenantAttributeApi.GetTenantAttributesAsync();
+
+                // 属性の型に応じた処理
+                foreach (var attribute in tenantAttributes.VarTenantAttributes)
+                {
+                    var attributeName = attribute.AttributeName;
+                    var attributeType = attribute.AttributeType.ToString();
+
+                    if (tenantAttributeValues.ContainsKey(attributeName) && attributeType.ToLower() == "number")
+                    {
+                        if (int.TryParse(tenantAttributeValues[attributeName]?.ToString(), out int numericValue))
+                        {
+                            tenantAttributeValues[attributeName] = numericValue;
+                        }
+                        else
+                        {
+                            return BadRequest("Invalid attribute value");
+                        }
+                    }
+                }
+
+                // テナントの登録
+                var tenantApi = new TenantApi(authApiClientConfig);
+                var tenantProps = new TenantProps(
+                    name: tenantName,
+                    attributes: tenantAttributeValues,
+                    backOfficeStaffEmail: userInfo.Email
+                );
+
+
+                var createdTenant = await tenantApi.CreateTenantAsync(tenantProps);
+                var tenantId = createdTenant.Id;
+
+                // ユーザー属性の取得
+                var userAttributeApi = new UserAttributeApi(authApiClientConfig);
+                var userAttributes = await userAttributeApi.GetUserAttributesAsync();
+
+                // 属性の型に応じた処理
+                foreach (var attribute in userAttributes.VarUserAttributes)
+                {
+                    var attributeName = attribute.AttributeName;
+                    var attributeType = attribute.AttributeType.ToString();
+
+                    if (userAttributeValues.ContainsKey(attributeName) && attributeType.ToLower() == "number")
+                    {
+                        if (int.TryParse(userAttributeValues[attributeName]?.ToString(), out int numericValue))
+                        {
+                            userAttributeValues[attributeName] = numericValue;
+                        }
+                        else
+                        {
+                            return BadRequest("Invalid attribute value");
+                        }
+                    }
+                }
+
+
+                // テナントユーザーの登録
+                var tenantUserApi = new TenantUserApi(authApiClientConfig);
+                var createTenantUserParam = new CreateTenantUserParam(userInfo.Email, userAttributeValues);
+                var tenantUser = await tenantUserApi.CreateTenantUserAsync(tenantId, createTenantUserParam);
+
+
+                var createTenantUserRolesParam = new CreateTenantUserRolesParam(new List<string> { "admin" });
+                await tenantUserApi.CreateTenantUserRolesAsync(tenantId, tenantUser.Id, 3, createTenantUserRolesParam);
+
+                return Ok(new { message = "User successfully registered to the tenant", request });
+            }
+            catch (Exception ex)
+            {
+                return HandleApiException(ex);
+            }
+        }
+
         public class UserRegisterRequest
         {
             [Required(ErrorMessage = "Email is required.")]
@@ -521,6 +643,14 @@ namespace SampleWebApplication.Controllers
             [Required(ErrorMessage = "TenantId is required.")]
             public string TenantId { get; set; }
             public Dictionary<string, object> UserAttributeValues { get; set; }
+        }
+
+        public class SelfSignUpRequest
+        {
+            [Required(ErrorMessage = "TenantName is required.")]
+            public string TenantName { get; set; }
+            public Dictionary<string, object> UserAttributeValues { get; set; }
+            public Dictionary<string, object> TenantAttributeValues { get; set; }
         }
 
         public class UserDeleteRequest
