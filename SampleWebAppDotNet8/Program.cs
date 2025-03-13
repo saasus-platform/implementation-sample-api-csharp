@@ -724,6 +724,13 @@ namespace SampleWebApp
                 }
             });
 
+            app.MapPost("/logout", async (HttpContext context) =>
+            {
+                context.Response.Cookies.Delete("SaaSusRefreshToken");
+
+                return Results.Json(new { message = "Logged out successfully" });
+            });
+
             app.Run();
 
         }

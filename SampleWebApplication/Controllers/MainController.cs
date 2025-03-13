@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Web;
 using System.Web.Http;
 using authapi.Api;
 using authapi.Model;
@@ -632,6 +633,22 @@ namespace SampleWebApplication.Controllers
             {
                 return HandleApiException(ex);
             }
+        }
+
+        [HttpPost]
+        [Route("logout")]
+        public async Task<IHttpActionResult> Logout()
+        {
+            // クッキーを削除
+            var cookie = new HttpCookie("SaaSusRefreshToken")
+            {
+                Expires = System.DateTime.Now.AddDays(-1), // 過去の日付に設定して削除
+                HttpOnly = true
+            };
+
+            HttpContext.Current.Response.Cookies.Add(cookie);
+
+            return Ok(new { message = "Logged out successfully" });
         }
 
         public class UserRegisterRequest
