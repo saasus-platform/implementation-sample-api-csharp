@@ -69,7 +69,7 @@ See the documentation [API implementation using SaaS Platform](https://docs.saas
 ### 3. Open the .NET Framework 4.8 project in Visual Studio
 
 1. **Open the .NET Framework 4.8 project in Visual Studio**  
-   Open SampleWebApplication.sln located in implementation-sample-api-csharp/SampleWebApplication/ using Visual Studio.
+   Open SampleWebAppDotNet48.sln located in implementation-sample-api-csharp/SampleWebAppDotNet48/ using Visual Studio.
 
 2. **Install the SaaSus SDK**  
    Use the local NuGet feed to install the SaaSus SDK package:
@@ -90,7 +90,7 @@ See the documentation [API implementation using SaaS Platform](https://docs.saas
 
 ### 5. Configure the Environment
 
-Edit the `Web.config` file in the `SampleWebApplication` directory to set the SaaSus API credentials. Add or modify the following entries:
+Edit the `Web.config` file in the `SampleWebAppDotNet48` directory to set the SaaSus API credentials. Add or modify the following entries:
 
 ```xml
 <configuration>
@@ -134,7 +134,7 @@ docker-compose up -d
 4. Run `psql` and apply `init.sql` using the full path:
    - **For .NET Framework 4.8:**
      ```sql
-     \i 'C:/path/to/implementation-sample-api-csharp/SampleWebApplication/init.sql'
+     \i 'C:/path/to/implementation-sample-api-csharp/SampleWebAppDotNet48/init.sql'
      ```
    - **For .NET 8:**
      ```sql
