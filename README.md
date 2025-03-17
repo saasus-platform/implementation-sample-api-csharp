@@ -174,6 +174,7 @@ Run the following command to add the SaaSus SDK as a project reference:
 
 ```bash
 dotnet add SampleWebAppDotNet8.csproj reference ../../saasus-sdk-csharp/saasus-sdk-csharp.csproj
+dotnet sln add ../../saasus-sdk-csharp/saasus-sdk-csharp.csproj
 ```
 
 ### 3. Configure the Environment
