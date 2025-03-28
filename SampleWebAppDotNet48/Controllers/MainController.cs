@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Diagnostics;
 using System.Linq;
 using System.Net;
@@ -730,7 +730,6 @@ namespace SampleWebAppDotNet48.Controllers
                     envsList
                 );
 
-                // 非同期メソッドを使用する場合（CreateTenantInvitationが非同期の場合）
                 invitationApi.CreateTenantInvitation(tenantId, createTenantInvitationParam);
 
                 // 結果を返す
