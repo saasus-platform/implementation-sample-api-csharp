@@ -768,7 +768,7 @@ namespace SampleWebApp
 
                     // 招待一覧を取得
                     var invitationApi = new InvitationApi(authApiClientConfig);
-                    var invitations = invitationApi.GetTenantInvitations(tenantId);
+                    var invitations = await invitationApi.GetTenantInvitationsAsync(tenantId);
 
                     // JSON形式でレスポンスを返す
                     var jsonResponse = JsonConvert.SerializeObject(invitations.VarInvitations);
