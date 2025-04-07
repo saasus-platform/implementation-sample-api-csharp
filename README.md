@@ -2,7 +2,7 @@
 
 This repository demonstrates the implementation of a SaaS application using the SaaSus SDK with **.NET Framework 4.8** and **.NET 8**.
 
-See the documentation [API implementation using SaaS Platform](https://docs.saasus.io/docs/implementing-authentication-using-saasus-platform-apiserver)
+See the documentation [API implementation using SaaS Platform](https://docs.saasus.io/ja/docs/implementation-guide/implementing-authentication-using-saasus-platform-apiserver)
 
 ## Table of Contents
 
