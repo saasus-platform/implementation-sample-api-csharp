@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Diagnostics;
 using System.Linq;
 using System.Net;
@@ -651,6 +651,96 @@ namespace SampleWebAppDotNet48.Controllers
             return Ok(new { message = "Logged out successfully" });
         }
 
+        // GET /invitations
+        [HttpGet]
+        [Route("invitations")]
+        public async Task<IHttpActionResult> GetInvitations(string tenant_id)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(tenant_id))
+                {
+                    Console.Error.WriteLine("tenant_id query parameter is missing");
+                    return BadRequest("The 'tenant_id' query parameter is required.");
+                }
+
+                var token = GetBearerToken(Request);
+                var authApiClientConfig = CreateClientConfiguration(c => c.GetAuthApiClientConfig());
+                var userInfoApi = new UserInfoApi(authApiClientConfig);
+                var userInfo = await userInfoApi.GetUserInfoAsync(token);
+
+                if (userInfo.Tenants == null || !userInfo.Tenants.Any())
+                {
+                    return BadRequest("No tenant information available.");
+                }
+
+                // ユーザーが所属しているテナントか確認
+                var isBelongingTenant = userInfo.Tenants.Any(t => t.Id == tenant_id);
+                if (!isBelongingTenant)
+                {
+                    Console.Error.WriteLine($"Tenant {tenant_id} does not belong to user");
+                    return Content(HttpStatusCode.Forbidden, "Tenant does not belong to the user.");
+                }
+
+                // 招待一覧を取得
+                var invitationApi = new InvitationApi(authApiClientConfig);
+                var invitations = await invitationApi.GetTenantInvitationsAsync(tenant_id);
+
+                return Ok(invitations.VarInvitations);
+            }
+            catch (Exception ex)
+            {
+                return HandleApiException(ex);
+            }
+        }
+
+        // POST /user_invitation
+        [HttpPost]
+        [Route("user_invitation")]
+        public async Task<IHttpActionResult> UserInvitation([FromBody] UserInvitationRequest request)
+        {
+            // バリデーションのチェック
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            string email = request.Email;
+            string tenantId = request.TenantId;
+
+            try
+            {
+                // 招待を作成するユーザーのアクセストークンを取得
+                var accessToken = HttpContext.Current.Request.Headers.Get("X-Access-Token");
+
+                var authApiClientConfig = CreateClientConfiguration(c => c.GetAuthApiClientConfig());
+                var invitationApi = new InvitationApi(authApiClientConfig);
+
+                // envsに追加するオブジェクトを作成
+                var invitedEnv = new InvitedUserEnvironmentInformationInner(
+                    id: 3, // 本番環境のID:3を設定
+                    roleNames: new List<string> { "admin" }
+                );
+
+                // envsのリストを作成
+                var envsList = new List<InvitedUserEnvironmentInformationInner> { invitedEnv };
+
+                // テナント招待のパラメータを作成
+                var createTenantInvitationParam = new CreateTenantInvitationParam(
+                    email,
+                    accessToken,
+                    envsList
+                );
+
+                invitationApi.CreateTenantInvitation(tenantId, createTenantInvitationParam);
+
+                // 結果を返す
+                return Ok(new { message = "Create tenant user invitation successfully", request });
+            }
+            catch (Exception ex)
+            {
+                return HandleApiException(ex);
+            }
+        }
+
         public class UserRegisterRequest
         {
             [Required(ErrorMessage = "Email is required.")]
@@ -674,6 +764,14 @@ namespace SampleWebAppDotNet48.Controllers
         {
             public string TenantId { get; set; }
             public string UserId { get; set; }
+        }
+
+        public class UserInvitationRequest
+        {
+            [Required(ErrorMessage = "Email is required.")]
+            public string Email { get; set; }
+            [Required(ErrorMessage = "TenantId is required.")]
+            public string TenantId { get; set; }
         }
 
         // ApplicationDbContext クラス

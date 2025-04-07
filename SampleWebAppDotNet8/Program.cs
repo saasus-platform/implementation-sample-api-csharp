@@ -731,6 +731,118 @@ namespace SampleWebApp
                 return Results.Json(new { message = "Logged out successfully" });
             });
 
+            app.MapGet("/invitations", async (HttpContext context) =>
+            {
+                var token = GetBearerToken(context);
+                if (string.IsNullOrEmpty(token))
+                {
+                    return Results.Unauthorized();
+                }
+
+                try
+                {
+                    var authApiClientConfig = CreateClientConfiguration(c => c.GetAuthApiClientConfig(), context);
+                    var userInfoApi = new UserInfoApi(authApiClientConfig);
+                    var userInfo = await userInfoApi.GetUserInfoAsync(token);
+
+                    if (userInfo.Tenants == null || !userInfo.Tenants.Any())
+                    {
+                        return Results.BadRequest("No tenant information available.");
+                    }
+
+                    // クエリパラメータから tenant_id を取得
+                    var tenantId = context.Request.Query["tenant_id"].ToString();
+                    if (string.IsNullOrEmpty(tenantId))
+                    {
+                        Console.Error.WriteLine("tenant_id query parameter is missing");
+                        return Results.BadRequest("tenant_id query parameter is required");
+                    }
+
+                    // ユーザーが所属しているテナントか確認
+                    var isBelongingTenant = userInfo.Tenants.Any(t => t.Id == tenantId);
+                    if (!isBelongingTenant)
+                    {
+                        Console.Error.WriteLine($"Tenant {tenantId} does not belong to user");
+                        return Results.Problem("Tenant that does not belong", statusCode: 403);
+                    }
+
+                    // 招待一覧を取得
+                    var invitationApi = new InvitationApi(authApiClientConfig);
+                    var invitations = await invitationApi.GetTenantInvitationsAsync(tenantId);
+
+                    // JSON形式でレスポンスを返す
+                    var jsonResponse = JsonConvert.SerializeObject(invitations.VarInvitations);
+
+                    return Results.Text(jsonResponse, "application/json");
+                }
+                catch (Exception ex)
+                {
+                    return HandleApiException(ex);
+                }
+            });
+
+            app.MapPost("/user_invitation", async ([FromBody] UserInvitationRequest requestBody, HttpContext context) =>
+            {
+                var token = GetBearerToken(context);
+                if (string.IsNullOrEmpty(token))
+                {
+                    return Results.Unauthorized();
+                }
+
+                // バリデーションの実行
+                var validationResults = new List<ValidationResult>();
+                var validationContext = new ValidationContext(requestBody);
+                if (!Validator.TryValidateObject(requestBody, validationContext, validationResults, true))
+                {
+                    var errors = validationResults.Select(vr => new { Field = vr.MemberNames.FirstOrDefault(), Error = vr.ErrorMessage });
+                    return Results.BadRequest(new { error = "Validation failed.", details = errors });
+                }
+
+                string email = requestBody.Email;
+                string tenantId = requestBody.TenantId;
+
+                try
+                {
+                    // 招待を作成するユーザーのアクセストークンを取得
+                    var accessToken = context.Request.Headers["X-Access-Token"].FirstOrDefault();
+
+                    // アクセストークンがリクエストヘッダーに含まれていなかったらエラー
+                    if (string.IsNullOrEmpty(accessToken))
+                    {
+                        return Results.Unauthorized();
+                    }
+
+                    var authApiClientConfig = CreateClientConfiguration(c => c.GetAuthApiClientConfig(), context);
+                    var invitationApi = new InvitationApi(authApiClientConfig);
+
+                    // envsに追加するオブジェクトを作成
+                    var invitedEnv = new InvitedUserEnvironmentInformationInner(
+                        id: 3, // 本番環境のID:3を設定
+                        roleNames: new List<string> { "admin" }
+                    );
+
+                    // envsのリストを作成
+                    var envsList = new List<InvitedUserEnvironmentInformationInner> { invitedEnv };
+
+                    // テナント招待のパラメータを作成
+                    var createTenantInvitationParam = new CreateTenantInvitationParam(
+                        email,
+                        accessToken,
+                        envsList
+                    );
+
+                    // テナントへの招待を作成
+                    invitationApi.CreateTenantInvitation(tenantId, createTenantInvitationParam);
+
+                    return Results.Ok(new { message = "Create tenant user invitation successfully" });
+                }
+                catch (Exception ex)
+                {
+                    Console.Error.WriteLine($"Error: {ex.Message}");
+                    return Results.Problem(detail: ex.Message, statusCode: 500);
+                }
+            });
+
             app.Run();
 
         }
@@ -795,6 +907,15 @@ namespace SampleWebApp
 
         public Dictionary<string, object> TenantAttributeValues { get; set; } = new Dictionary<string, object>();
 
+    }
+
+    public class UserInvitationRequest
+    {
+        [Required(ErrorMessage = "Email is required.")]
+        public string Email { get; set; }
+
+        [Required(ErrorMessage = "TenantId is required.")]
+        public string TenantId { get; set; }
     }
 
     // DbContext定義

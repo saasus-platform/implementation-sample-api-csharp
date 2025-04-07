@@ -19,7 +19,7 @@ namespace SampleWebAppDotNet48
             RouteConfig.RegisterRoutes(RouteTable.Routes);
             BundleConfig.RegisterBundles(BundleTable.Bundles);
 
-            // ���ϐ��̐ݒ�
+            // 環境変数の設定
             SetEnvironmentVariables();
         }
 
@@ -30,7 +30,7 @@ namespace SampleWebAppDotNet48
             string apiKey = System.Configuration.ConfigurationManager.AppSettings["SAASUS_API_KEY"];
             string saasIdKey = System.Configuration.ConfigurationManager.AppSettings["SAASUS_SAAS_ID"];
  
-            // SDK�Ŏg�p������ϐ���ݒ�
+            // SDKで使用する環境変数を設定
             Environment.SetEnvironmentVariable("SAASUS_API_URL_BASE", baseAuthURL);
             Environment.SetEnvironmentVariable("SAASUS_SECRET_KEY", secretKey);
             Environment.SetEnvironmentVariable("SAASUS_API_KEY", apiKey);
@@ -39,12 +39,12 @@ namespace SampleWebAppDotNet48
 
         protected void Application_BeginRequest(object sender, EventArgs e)
         {
-            HttpContext.Current.Response.Headers.Add("Access-Control-Allow-Origin", "http://localhost:3000"); // �Œ�I���W��
+            HttpContext.Current.Response.Headers.Add("Access-Control-Allow-Origin", "http://localhost:3000"); // 許可するオリジン
             HttpContext.Current.Response.Headers.Add("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-            HttpContext.Current.Response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With");
+            HttpContext.Current.Response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, x-saasus-referer, X-Access-Token");
             HttpContext.Current.Response.Headers.Add("Access-Control-Allow-Credentials", "true");
 
-            // OPTIONS���N�G�X�g�ւ̑Ή��i�v���t���C�g���N�G�X�g�j
+            // OPTIONSリクエストへの対応（プリフライトリクエスト）
             if (HttpContext.Current.Request.HttpMethod == "OPTIONS")
             {
                 HttpContext.Current.Response.StatusCode = 200;
