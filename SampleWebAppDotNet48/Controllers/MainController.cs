@@ -637,7 +637,7 @@ namespace SampleWebAppDotNet48.Controllers
 
         [HttpPost]
         [Route("logout")]
-        public async Task<IHttpActionResult> Logout()
+        public IHttpActionResult Logout()
         {
             // クッキーを削除
             var cookie = new HttpCookie("SaaSusRefreshToken")
@@ -730,7 +730,7 @@ namespace SampleWebAppDotNet48.Controllers
                     envsList
                 );
 
-                invitationApi.CreateTenantInvitation(tenantId, createTenantInvitationParam);
+                await invitationApi.CreateTenantInvitationAsync(tenantId, createTenantInvitationParam);
 
                 // 結果を返す
                 return Ok(new { message = "Create tenant user invitation successfully", request });
