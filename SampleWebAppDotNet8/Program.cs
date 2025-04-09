@@ -125,7 +125,7 @@ namespace SampleWebApp
                 switch (expectedType.ToLowerInvariant())
                 {
                     case "string":
-                        return value?.ToString();
+                        return value?.ToString() ?? string.Empty;
                     case "number":
                         if (int.TryParse(value?.ToString(), out int numericValue))
                             return numericValue;
@@ -725,7 +725,7 @@ namespace SampleWebApp
                 }
             });
 
-            app.MapPost("/logout", async (HttpContext context) =>
+            app.MapPost("/logout", (HttpContext context) =>
             {
                 context.Response.Cookies.Delete("SaaSusRefreshToken");
 
@@ -833,7 +833,7 @@ namespace SampleWebApp
                     );
 
                     // テナントへの招待を作成
-                    invitationApi.CreateTenantInvitation(tenantId, createTenantInvitationParam);
+                    await invitationApi.CreateTenantInvitationAsync(tenantId, createTenantInvitationParam);
 
                     return Results.Ok(new { message = "Create tenant user invitation successfully" });
                 }
@@ -1069,10 +1069,10 @@ namespace SampleWebApp
     public class UserInvitationRequest
     {
         [Required(ErrorMessage = "Email is required.")]
-        public string Email { get; set; }
+        public string Email { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "TenantId is required.")]
-        public string TenantId { get; set; }
+        public string TenantId { get; set; } = string.Empty;
     }
     public class MfaVerifyRequest
     {
