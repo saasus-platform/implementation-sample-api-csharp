@@ -637,7 +637,7 @@ namespace SampleWebAppDotNet48.Controllers
 
         [HttpPost]
         [Route("logout")]
-        public async Task<IHttpActionResult> Logout()
+        public IHttpActionResult Logout()
         {
             // クッキーを削除
             var cookie = new HttpCookie("SaaSusRefreshToken")
@@ -730,10 +730,166 @@ namespace SampleWebAppDotNet48.Controllers
                     envsList
                 );
 
-                invitationApi.CreateTenantInvitation(tenantId, createTenantInvitationParam);
+                await invitationApi.CreateTenantInvitationAsync(tenantId, createTenantInvitationParam);
 
                 // 結果を返す
                 return Ok(new { message = "Create tenant user invitation successfully", request });
+            }
+            catch (Exception ex)
+            {
+                return HandleApiException(ex);
+            }
+        }
+
+        // MFA ステータス確認エンドポイント
+        [HttpGet]
+        [Route("mfa_status")]
+        public async Task<IHttpActionResult> GetMfaStatus()
+        {
+            try
+            {
+                // IDトークン（Bearerトークン）を取得
+                var token = GetBearerToken(Request);
+
+                // 認証APIクライアントを初期化
+                var authApiClientConfig = CreateClientConfiguration(c => c.GetAuthApiClientConfig());
+
+                // ユーザー情報を取得
+                var userInfoApi = new UserInfoApi(authApiClientConfig);
+                var userInfo = await userInfoApi.GetUserInfoAsync(token);
+
+                // MFA設定を取得
+                var saasUserApi = new SaasUserApi(authApiClientConfig);
+                var mfaPref = await saasUserApi.GetUserMfaPreferenceAsync(userInfo.Id);
+
+                // MFAの有効状態を返す
+                return Ok(new { enabled = mfaPref.Enabled });
+            }
+            catch (Exception ex)
+            {
+                return HandleApiException(ex);
+            }
+        }
+
+        // MFA シークレット作成エンドポイント
+        [HttpGet]
+        [Route("mfa_setup")]
+        public async Task<IHttpActionResult> SetupMfa()
+        {
+            try
+            {
+                // トークンの取得
+                var token = GetBearerToken(Request);
+                var accessToken = HttpContext.Current.Request.Headers.Get("X-Access-Token");
+
+                if (string.IsNullOrEmpty(accessToken))
+                {
+                    return Content(HttpStatusCode.Unauthorized, "Missing X-Access-Token header");
+                }
+
+                // APIクライアント初期化
+                var authApiClientConfig = CreateClientConfiguration(c => c.GetAuthApiClientConfig());
+
+                // ユーザー情報取得
+                var userInfoApi = new UserInfoApi(authApiClientConfig);
+                var userInfo = await userInfoApi.GetUserInfoAsync(token);
+
+                // シークレットコード生成
+                var saasUserApi = new SaasUserApi(authApiClientConfig);
+                var secretCode = await saasUserApi.CreateSecretCodeAsync(
+                    userInfo.Id,
+                    new CreateSecretCodeParam(accessToken)
+                );
+
+                // QRコード形式のURL生成
+                var qrCodeUrl = $"otpauth://totp/SaaSusPlatform:{userInfo.Email}?secret={secretCode.SecretCode}&issuer=SaaSusPlatform";
+
+                return Ok(new { qrCodeUrl });
+            }
+            catch (Exception ex)
+            {
+                return HandleApiException(ex);
+            }
+        }
+
+        // MFA 認証コード検証エンドポイント
+        [HttpPost]
+        [Route("mfa_verify")]
+        public async Task<IHttpActionResult> VerifyMfa([FromBody] MfaVerifyRequest request)
+        {
+            try
+            {
+                // トークンとX-Access-Tokenを取得
+                var token = GetBearerToken(Request);
+                var accessToken = HttpContext.Current.Request.Headers.Get("X-Access-Token");
+                var verificationCode = request.VerificationCode;
+
+                if (string.IsNullOrEmpty(accessToken) || string.IsNullOrEmpty(verificationCode))
+                {
+                    return BadRequest("Missing accessToken or verificationCode");
+                }
+
+                // APIクライアント初期化とユーザー取得
+                var authApiClientConfig = CreateClientConfiguration(c => c.GetAuthApiClientConfig());
+                var userInfoApi = new UserInfoApi(authApiClientConfig);
+                var userInfo = await userInfoApi.GetUserInfoAsync(token);
+
+                // トークンを使って検証APIを実行
+                var saasUserApi = new SaasUserApi(authApiClientConfig);
+                await saasUserApi.UpdateSoftwareTokenAsync(
+                    userInfo.Id,
+                    new UpdateSoftwareTokenParam(accessToken, verificationCode)
+                );
+
+                return Ok(new { message = "MFA verification successful" });
+            }
+            catch (Exception ex)
+            {
+                return HandleApiException(ex);
+            }
+        }
+
+        // MFA 有効化エンドポイント
+        [HttpPost]
+        [Route("mfa_enable")]
+        public async Task<IHttpActionResult> EnableMfa()
+        {
+            try
+            {
+                var token = GetBearerToken(Request);
+                var authApiClientConfig = CreateClientConfiguration(c => c.GetAuthApiClientConfig());
+                var userInfoApi = new UserInfoApi(authApiClientConfig);
+                var userInfo = await userInfoApi.GetUserInfoAsync(token);
+
+                var saasUserApi = new SaasUserApi(authApiClientConfig);
+                var mfaPreference = new MfaPreference(enabled: true, method: MfaPreference.MethodEnum.SoftwareToken);
+                await saasUserApi.UpdateUserMfaPreferenceAsync(userInfo.Id, mfaPreference);
+
+                return Ok(new { message = "MFA has been enabled" });
+            }
+            catch (Exception ex)
+            {
+                return HandleApiException(ex);
+            }
+        }
+
+        // MFA 無効化エンドポイント
+        [HttpPost]
+        [Route("mfa_disable")]
+        public async Task<IHttpActionResult> DisableMfa()
+        {
+            try
+            {
+                var token = GetBearerToken(Request);
+                var authApiClientConfig = CreateClientConfiguration(c => c.GetAuthApiClientConfig());
+                var userInfoApi = new UserInfoApi(authApiClientConfig);
+                var userInfo = await userInfoApi.GetUserInfoAsync(token);
+
+                var saasUserApi = new SaasUserApi(authApiClientConfig);
+                var mfaPreference = new MfaPreference(enabled: false, method: MfaPreference.MethodEnum.SoftwareToken);
+                await saasUserApi.UpdateUserMfaPreferenceAsync(userInfo.Id, mfaPreference);
+
+                return Ok(new { message = "MFA has been disabled" });
             }
             catch (Exception ex)
             {
@@ -772,6 +928,13 @@ namespace SampleWebAppDotNet48.Controllers
             public string Email { get; set; }
             [Required(ErrorMessage = "TenantId is required.")]
             public string TenantId { get; set; }
+        }
+
+        public class MfaVerifyRequest
+        {
+            [Required(ErrorMessage = "VerificationCode is required.")]
+            [Newtonsoft.Json.JsonProperty("verification_code")]
+            public string VerificationCode { get; set; }
         }
 
         // ApplicationDbContext クラス
