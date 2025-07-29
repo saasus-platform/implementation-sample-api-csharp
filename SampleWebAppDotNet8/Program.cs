@@ -46,6 +46,9 @@ namespace SampleWebApp
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
+            // コントローラーサポートを追加
+            builder.Services.AddControllers();
+
             // appsettings.json の読み込み
             var config = new ConfigurationBuilder()
                 .AddJsonFile("appsettings.json")
@@ -999,6 +1002,9 @@ namespace SampleWebApp
                     return HandleApiException(ex);
                 }
             });
+
+            // コントローラーのルーティングを追加
+            app.MapControllers();
 
             app.Run();
 
