@@ -1,14 +1,15 @@
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Concurrent;
 using System.ComponentModel.DataAnnotations;
-using Newtonsoft.Json;
+using SampleWebAppDotNet8.Helpers;
+
 using authapi.Api;
 using authapi.Model;
 using pricingapi.Api;
 using pricingapi.Model;
 using modules;
 
-namespace SampleWebApp.Controllers
+namespace SampleWebAppDotNet8.Controllers
 {
   [ApiController]
   public class BillingController : ControllerBase
@@ -18,17 +19,6 @@ namespace SampleWebApp.Controllers
     public BillingController(IConfiguration configuration)
     {
       _configuration = configuration;
-    }
-
-    // IDトークンを取得
-    private string GetIDToken(HttpRequest request)
-    {
-      if (request.Headers.TryGetValue("Authorization", out var authHeader) &&
-          authHeader.ToString().StartsWith("Bearer "))
-      {
-        return authHeader.ToString().Substring(7);
-      }
-      return "";
     }
 
     // 課金アクセス権限チェック
@@ -269,19 +259,16 @@ namespace SampleWebApp.Controllers
       try
       {
         // 1. クライアント初期化
-        var config = new Configuration();
-        var authClient = config.GetAuthApiClientConfig();
-        var pricingClient = config.GetPricingApiClientConfig();
-
-        if (HttpContext.Request.Headers.TryGetValue("X-Saasus-Referer", out var referer))
-        {
-          authClient.SetReferer(referer.ToString());
-          pricingClient.SetReferer(referer.ToString());
-        }
+        var authApiClientConfig = SaasusApiHelpers.CreateClientConfiguration(c => c.GetAuthApiClientConfig(), HttpContext);
+        var pricingConfig = SaasusApiHelpers.CreateClientConfiguration(c => c.GetPricingApiClientConfig(), HttpContext);
 
         // 2. 認証・認可チェック
-        var userInfoApi = new UserInfoApi(authClient);
-        var userInfo = await userInfoApi.GetUserInfoAsync(GetIDToken(HttpContext.Request));
+        var userInfoApi = new UserInfoApi(authApiClientConfig);
+        var idToken = SaasusApiHelpers.GetBearerToken(HttpContext);
+        if (string.IsNullOrEmpty(idToken))
+          return Unauthorized();
+        var userInfo = await userInfoApi.GetUserInfoAsync(idToken);
+
 
         if (!HasBillingAccess(userInfo, tenantId))
         {
@@ -289,10 +276,10 @@ namespace SampleWebApp.Controllers
         }
 
         // プラン取得
-        var plansApi = new PricingPlansApi(pricingClient);
+        var plansApi = new PricingPlansApi(pricingConfig);
         var plan = await plansApi.GetPricingPlanAsync(planId);
         // テナント取得を追加
-        var tenantApi = new TenantApi(authClient);
+        var tenantApi = new TenantApi(authApiClientConfig);
         var tenant = await tenantApi.GetTenantAsync(tenantId);
 
         // 税率取得
@@ -303,14 +290,14 @@ namespace SampleWebApp.Controllers
 
         if (history?.TaxRateId != null)
         {
-          var taxRatesApi = new TaxRateApi(pricingClient);
+          var taxRatesApi = new TaxRateApi(pricingConfig);
           var taxRates = await taxRatesApi.GetTaxRatesAsync();
           matchedTax = taxRates.VarTaxRates.FirstOrDefault(t => t.Id == history.TaxRateId);
         }
 
         // 使用量取得と集計
         var (billings, totals) = await CalculateMeteringUnitBillingsAsync(
-            tenantId, start, end, plan, pricingClient);
+            tenantId, start, end, plan, pricingConfig);
 
         // 6. summary と pricing plan 情報
         var summary = new Dictionary<string, object>
@@ -337,17 +324,9 @@ namespace SampleWebApp.Controllers
 
         return Ok(response);
       }
-      catch (authapi.Client.ApiException e)
+      catch (Exception ex)
       {
-        return StatusCode(500, new { error = $"Auth API error: {e.Message}" });
-      }
-      catch (pricingapi.Client.ApiException e)
-      {
-        return StatusCode(500, new { error = $"Pricing API error: {e.Message}" });
-      }
-      catch (Exception e)
-      {
-        return StatusCode(500, new { error = $"Dashboard fetch failed: {e.Message}" });
+        return SaasusApiHelpers.HandleApiExceptionMvc(ex, this);
       }
     }
 
@@ -370,15 +349,12 @@ namespace SampleWebApp.Controllers
         var authClient = config.GetAuthApiClientConfig();
         var pricingClient = config.GetPricingApiClientConfig();
 
-        if (HttpContext.Request.Headers.TryGetValue("X-Saasus-Referer", out var referer))
-        {
-          authClient.SetReferer(referer.ToString());
-          pricingClient.SetReferer(referer.ToString());
-        }
-
         // 2. 認証と権限チェック
         var userInfoApi = new UserInfoApi(authClient);
-        var userInfo = await userInfoApi.GetUserInfoAsync(GetIDToken(HttpContext.Request));
+        var idToken = SaasusApiHelpers.GetBearerToken(HttpContext);
+        if (string.IsNullOrEmpty(idToken))
+          return Unauthorized();
+        var userInfo = await userInfoApi.GetUserInfoAsync(idToken);
 
         if (!HasBillingAccess(userInfo, tenantId))
         {
@@ -462,17 +438,9 @@ namespace SampleWebApp.Controllers
 
         return Ok(results);
       }
-      catch (authapi.Client.ApiException e)
+      catch (Exception ex)
       {
-        return StatusCode(500, new { error = $"Auth API error: {e.Message}" });
-      }
-      catch (pricingapi.Client.ApiException e)
-      {
-        return StatusCode(500, new { error = $"Pricing API error: {e.Message}" });
-      }
-      catch (Exception e)
-      {
-        return StatusCode(500, new { error = $"plan periods failed: {e.Message}" });
+        return SaasusApiHelpers.HandleApiExceptionMvc(ex, this);
       }
     }
 
@@ -523,16 +491,13 @@ namespace SampleWebApp.Controllers
       try
       {
         // 1. 権限チェック
-        var config = new Configuration();
-        var authClient = config.GetAuthApiClientConfig();
+        var authApiClientConfig = SaasusApiHelpers.CreateClientConfiguration(c => c.GetAuthApiClientConfig(), HttpContext);
 
-        if (HttpContext.Request.Headers.TryGetValue("X-Saasus-Referer", out var referer))
-        {
-          authClient.SetReferer(referer.ToString());
-        }
-
-        var userInfoApi = new UserInfoApi(authClient);
-        var userInfo = await userInfoApi.GetUserInfoAsync(GetIDToken(HttpContext.Request));
+        var userInfoApi = new UserInfoApi(authApiClientConfig);
+        var idToken = SaasusApiHelpers.GetBearerToken(HttpContext);
+        if (string.IsNullOrEmpty(idToken))
+          return Unauthorized();
+        var userInfo = await userInfoApi.GetUserInfoAsync(idToken);
 
         if (!HasBillingAccess(userInfo, tenantId))
         {
@@ -554,13 +519,8 @@ namespace SampleWebApp.Controllers
         }
 
         // 3. SaaSus API 呼び出し
-        var pricingClient = config.GetPricingApiClientConfig();
-        if (HttpContext.Request.Headers.TryGetValue("X-Saasus-Referer", out var pricingReferer))
-        {
-          pricingClient.SetReferer(pricingReferer.ToString());
-        }
-
-        var meteringApi = new MeteringApi(pricingClient);
+        var pricingConfig = SaasusApiHelpers.CreateClientConfiguration(c => c.GetPricingApiClientConfig(), HttpContext);
+        var meteringApi = new MeteringApi(pricingConfig);
         var param = new UpdateMeteringUnitTimestampCountParam
         {
           Method = method switch
@@ -578,20 +538,11 @@ namespace SampleWebApp.Controllers
 
         return Ok(meteringCount);
       }
-      catch (authapi.Client.ApiException e)
+      catch (Exception ex)
       {
-        return StatusCode(500, new { error = $"Auth API error: {e.Message}" });
-      }
-      catch (pricingapi.Client.ApiException e)
-      {
-        return StatusCode(500, new { error = $"Pricing API error: {e.Message}" });
-      }
-      catch (Exception e)
-      {
-        return StatusCode(500, new { error = $"Failed to update metering count: {e.Message}" });
+        return SaasusApiHelpers.HandleApiExceptionMvc(ex, this);
       }
     }
-    // BillingController.cs 追記分
 
     /// <summary>
     /// 現在時刻（UTC now）のタイムスタンプでメータリング数を更新する
@@ -606,14 +557,12 @@ namespace SampleWebApp.Controllers
       try
       {
         /* ---------- 1. 権限チェック ---------- */
-        var config = new Configuration();
-        var authClient = config.GetAuthApiClientConfig();
-
-        if (HttpContext.Request.Headers.TryGetValue("X-Saasus-Referer", out var referer))
-          authClient.SetReferer(referer.ToString());
-
-        var userInfoApi = new UserInfoApi(authClient);
-        var userInfo = await userInfoApi.GetUserInfoAsync(GetIDToken(HttpContext.Request));
+        var authApiClientConfig = SaasusApiHelpers.CreateClientConfiguration(c => c.GetAuthApiClientConfig(), HttpContext);
+        var userInfoApi = new UserInfoApi(authApiClientConfig);
+        var idToken = SaasusApiHelpers.GetBearerToken(HttpContext);
+        if (string.IsNullOrEmpty(idToken))
+          return Unauthorized();
+        var userInfo = await userInfoApi.GetUserInfoAsync(idToken);
 
         if (!HasBillingAccess(userInfo, tenantId))
           return StatusCode(403, new { error = "Insufficient permissions" });
@@ -627,11 +576,8 @@ namespace SampleWebApp.Controllers
           return BadRequest(new { error = "Count must be >= 0" });
 
         /* ---------- 3. SaaSus API 呼び出し ---------- */
-        var pricingClient = config.GetPricingApiClientConfig();
-        if (HttpContext.Request.Headers.TryGetValue("X-Saasus-Referer", out var pReferer))
-          pricingClient.SetReferer(pReferer.ToString());
-
-        var meteringApi = new MeteringApi(pricingClient);
+        var pricingConfig = SaasusApiHelpers.CreateClientConfiguration(c => c.GetPricingApiClientConfig(), HttpContext);
+        var meteringApi = new MeteringApi(pricingConfig);
 
         // 現在時刻（秒単位, UTC）をタイムスタンプとして使用
         var ts = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
@@ -653,17 +599,9 @@ namespace SampleWebApp.Controllers
 
         return Ok(result);
       }
-      catch (authapi.Client.ApiException e)
+      catch (Exception ex)
       {
-        return StatusCode(500, new { error = $"Auth API error: {e.Message}" });
-      }
-      catch (pricingapi.Client.ApiException e)
-      {
-        return StatusCode(500, new { error = $"Pricing API error: {e.Message}" });
-      }
-      catch (Exception e)
-      {
-        return StatusCode(500, new { error = $"Failed to update metering count: {e.Message}" });
+        return SaasusApiHelpers.HandleApiExceptionMvc(ex, this);
       }
     }
 
