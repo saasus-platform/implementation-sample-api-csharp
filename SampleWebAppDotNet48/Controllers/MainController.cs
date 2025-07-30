@@ -5,6 +5,8 @@ using System.Net;
 using System.Net.Http;
 using System.Web;
 using System.Web.Http;
+using SampleWebAppDotNet48.Helpers;
+
 using authapi.Api;
 using authapi.Model;
 using pricingapi.Api;
@@ -27,55 +29,6 @@ namespace SampleWebAppDotNet48.Controllers
             _dbContext = new ApplicationDbContext(); // DbContext のインスタンス化
         }
 
-        // 共通クライアント設定を作成するヘルパー
-        private dynamic CreateClientConfiguration(Func<Configuration, dynamic> configSelector)
-        {
-            var config = new Configuration();
-            var clientConfig = configSelector(config);
-
-            // Referer ヘッダーの設定
-            var referer = Request.Headers.Referrer?.ToString();
-            if (!string.IsNullOrEmpty(referer))
-            {
-                clientConfig.SetReferer(referer);
-            }
-
-            return clientConfig;
-        }
-
-        // 共通認証ロジック: Bearer トークンを取得
-        private string GetBearerToken(HttpRequestMessage request)
-        {
-            // Authorization ヘッダーを確認
-            var authHeader = request.Headers.Authorization;
-
-            // Authorization ヘッダーが存在し、スキームが "Bearer" であることを確認
-            if (authHeader != null && authHeader.Scheme.Equals("Bearer", StringComparison.OrdinalIgnoreCase))
-            {
-                return authHeader.Parameter?.Trim() ?? throw new HttpResponseException(HttpStatusCode.Unauthorized);
-            }
-
-            // Authorization ヘッダーが存在しない場合
-            throw new HttpResponseException(HttpStatusCode.Unauthorized);
-        }
-
-        // 共通エラーハンドリング
-        private IHttpActionResult HandleApiException(Exception ex)
-        {
-            if (ex is authapi.Client.ApiException authApiEx)
-            {
-                Debug.WriteLine($"Auth API Error: {authApiEx.ErrorCode} - {authApiEx.Message}");
-                return StatusCode((HttpStatusCode)authApiEx.ErrorCode);
-            }
-            else if (ex is pricingapi.Client.ApiException pricingApiEx)
-            {
-                Debug.WriteLine($"Pricing API Error: {pricingApiEx.ErrorCode} - {pricingApiEx.Message}");
-                return StatusCode((HttpStatusCode)pricingApiEx.ErrorCode);
-            }
-            // その他のエラー
-            return InternalServerError(ex);
-        }
-
         // GET /credentials
         [HttpGet]
         [Route("credentials")]
@@ -86,7 +39,7 @@ namespace SampleWebAppDotNet48.Controllers
 
             try
             {
-                var authApiClientConfig = CreateClientConfiguration(c => c.GetAuthApiClientConfig());
+                var authApiClientConfig = SaasusApiHelpers.CreateClientConfiguration(c => c.GetAuthApiClientConfig(), Request);
                 var credentialApi = new CredentialApi(authApiClientConfig);
                 var credentials = await credentialApi.GetAuthCredentialsAsync(code, "tempCodeAuth", null);
 
@@ -94,7 +47,8 @@ namespace SampleWebAppDotNet48.Controllers
             }
             catch (Exception ex)
             {
-                return HandleApiException(ex);
+                var (status, body) = SaasusApiHelpers.HandleApiException(ex);
+                return Content(status, body);
             }
         }
 
@@ -111,7 +65,7 @@ namespace SampleWebAppDotNet48.Controllers
                     return BadRequest("No refresh token found.");
                 }
 
-                var authApiClientConfig = CreateClientConfiguration(c => c.GetAuthApiClientConfig());
+                var authApiClientConfig = SaasusApiHelpers.CreateClientConfiguration(c => c.GetAuthApiClientConfig(), Request);
                 var credentialApi = new CredentialApi(authApiClientConfig);
                 var credentials = await credentialApi.GetAuthCredentialsAsync(null, "refreshTokenAuth", refreshTokenCookie["SaaSusRefreshToken"].Value);
 
@@ -119,7 +73,8 @@ namespace SampleWebAppDotNet48.Controllers
             }
             catch (Exception ex)
             {
-                return HandleApiException(ex);
+                var (status, body) = SaasusApiHelpers.HandleApiException(ex);
+                return Content(status, body);
             }
         }
 
@@ -130,8 +85,8 @@ namespace SampleWebAppDotNet48.Controllers
         {
             try
             {
-                var token = GetBearerToken(Request);
-                var authApiClientConfig = CreateClientConfiguration(c => c.GetAuthApiClientConfig());
+                var token = SaasusApiHelpers.GetBearerToken(Request);
+                var authApiClientConfig = SaasusApiHelpers.CreateClientConfiguration(c => c.GetAuthApiClientConfig(), Request);
                 var userInfoApi = new UserInfoApi(authApiClientConfig);
                 var userInfo = await userInfoApi.GetUserInfoAsync(token);
 
@@ -139,7 +94,8 @@ namespace SampleWebAppDotNet48.Controllers
             }
             catch (Exception ex)
             {
-                return HandleApiException(ex);
+                var (status, body) = SaasusApiHelpers.HandleApiException(ex);
+                return Content(status, body);
             }
         }
 
@@ -156,8 +112,8 @@ namespace SampleWebAppDotNet48.Controllers
                     return BadRequest("The 'tenant_id' query parameter is required.");
                 }
 
-                var token = GetBearerToken(Request);
-                var authApiClientConfig = CreateClientConfiguration(c => c.GetAuthApiClientConfig());
+                var token = SaasusApiHelpers.GetBearerToken(Request);
+                var authApiClientConfig = SaasusApiHelpers.CreateClientConfiguration(c => c.GetAuthApiClientConfig(), Request);
                 var userInfoApi = new UserInfoApi(authApiClientConfig);
                 var userInfo = await userInfoApi.GetUserInfoAsync(token);
 
@@ -187,7 +143,8 @@ namespace SampleWebAppDotNet48.Controllers
             }
             catch (Exception ex)
             {
-                return HandleApiException(ex);
+                var (status, body) = SaasusApiHelpers.HandleApiException(ex);
+                return Content(status, body);
             }
         }
 
@@ -203,8 +160,8 @@ namespace SampleWebAppDotNet48.Controllers
                     Console.Error.WriteLine("tenant_id query parameter is missing");
                     return BadRequest("The 'tenant_id' query parameter is required.");
                 }
-                var token = GetBearerToken(Request);
-                var authApiClientConfig = CreateClientConfiguration(c => c.GetAuthApiClientConfig());
+                var token = SaasusApiHelpers.GetBearerToken(Request);
+                var authApiClientConfig = SaasusApiHelpers.CreateClientConfiguration(c => c.GetAuthApiClientConfig(), Request);
                 var userInfoApi = new UserInfoApi(authApiClientConfig);
                 var userInfo = await userInfoApi.GetUserInfoAsync(token);
                 if (userInfo.Tenants == null || !userInfo.Tenants.Any())
@@ -250,7 +207,8 @@ namespace SampleWebAppDotNet48.Controllers
             }
             catch (Exception ex)
             {
-                return HandleApiException(ex);
+                var (status, body) = SaasusApiHelpers.HandleApiException(ex);
+                return Content(status, body);
             }
         }
 
@@ -261,8 +219,8 @@ namespace SampleWebAppDotNet48.Controllers
         {
             try
             {
-                var token = GetBearerToken(Request);
-                var authApiClientConfig = CreateClientConfiguration(c => c.GetAuthApiClientConfig());
+                var token = SaasusApiHelpers.GetBearerToken(Request);
+                var authApiClientConfig = SaasusApiHelpers.CreateClientConfiguration(c => c.GetAuthApiClientConfig(), Request);
                 var userAttributeApi = new UserAttributeApi(authApiClientConfig);
                 var userAttributes = await userAttributeApi.GetUserAttributesAsync();
 
@@ -270,7 +228,8 @@ namespace SampleWebAppDotNet48.Controllers
             }
             catch (Exception ex)
             {
-                return HandleApiException(ex);
+                var (status, body) = SaasusApiHelpers.HandleApiException(ex);
+                return Content(status, body);
             }
         }
 
@@ -288,14 +247,14 @@ namespace SampleWebAppDotNet48.Controllers
                 }
 
                 // Bearerトークンを取得
-                var token = GetBearerToken(Request);
+                var token = SaasusApiHelpers.GetBearerToken(Request);
 
                 if (string.IsNullOrEmpty(plan_id))
                 {
                     return BadRequest("No price plan found for the tenant");
                 }
 
-                var pricingConfig = CreateClientConfiguration(c => c.GetPricingApiClientConfig());
+                var pricingConfig = SaasusApiHelpers.CreateClientConfiguration(c => c.GetPricingApiClientConfig(), Request);
                 var pricingPlansApi = new PricingPlansApi(pricingConfig);
                 var plan = await pricingPlansApi.GetPricingPlanAsync(plan_id);
 
@@ -303,7 +262,8 @@ namespace SampleWebAppDotNet48.Controllers
             }
             catch (Exception ex)
             {
-                return HandleApiException(ex);
+                var (status, body) = SaasusApiHelpers.HandleApiException(ex);
+                return Content(status, body);
             }
         }
 
@@ -324,9 +284,9 @@ namespace SampleWebAppDotNet48.Controllers
             try
             {
                 // Bearerトークンを取得
-                var token = GetBearerToken(Request);
+                var token = SaasusApiHelpers.GetBearerToken(Request);
                 // ユーザー情報の取得
-                var authApiClientConfig = CreateClientConfiguration(c => c.GetAuthApiClientConfig());
+                var authApiClientConfig = SaasusApiHelpers.CreateClientConfiguration(c => c.GetAuthApiClientConfig(), Request);
                 var userInfoApi = new UserInfoApi(authApiClientConfig);
                 var userInfo = await userInfoApi.GetUserInfoAsync(token);
                 if (userInfo.Tenants == null || !userInfo.Tenants.Any())
@@ -394,7 +354,8 @@ namespace SampleWebAppDotNet48.Controllers
             }
             catch (Exception ex)
             {
-                return HandleApiException(ex);
+                var (status, body) = SaasusApiHelpers.HandleApiException(ex);
+                return Content(status, body);
             }
         }
 
@@ -410,9 +371,9 @@ namespace SampleWebAppDotNet48.Controllers
             try
             {
                 // Bearerトークンを取得
-                var token = GetBearerToken(Request);
+                var token = SaasusApiHelpers.GetBearerToken(Request);
                 // ユーザー情報の取得
-                var authApiClientConfig = CreateClientConfiguration(c => c.GetAuthApiClientConfig());
+                var authApiClientConfig = SaasusApiHelpers.CreateClientConfiguration(c => c.GetAuthApiClientConfig(), Request);
                 var userInfoApi = new UserInfoApi(authApiClientConfig);
                 var userInfo = userInfoApi.GetUserInfo(token);
                 if (userInfo.Tenants == null || !userInfo.Tenants.Any())
@@ -455,7 +416,8 @@ namespace SampleWebAppDotNet48.Controllers
             }
             catch (Exception ex)
             {
-                return HandleApiException(ex);
+                var (status, body) = SaasusApiHelpers.HandleApiException(ex);
+                return Content(status, body);
             }
         }
 
@@ -473,9 +435,9 @@ namespace SampleWebAppDotNet48.Controllers
             {
                 // ユーザー情報を取得 (トークンバリデーションなどを追加可能)
                 // Bearerトークンを取得
-                var token = GetBearerToken(Request);
+                var token = SaasusApiHelpers.GetBearerToken(Request);
                 // ユーザー情報の取得
-                var authApiClientConfig = CreateClientConfiguration(c => c.GetAuthApiClientConfig());
+                var authApiClientConfig = SaasusApiHelpers.CreateClientConfiguration(c => c.GetAuthApiClientConfig(), Request);
                 var userInfoApi = new UserInfoApi(authApiClientConfig);
                 var userInfo = userInfoApi.GetUserInfo(token);
                 if (userInfo.Tenants == null || !userInfo.Tenants.Any())
@@ -509,7 +471,8 @@ namespace SampleWebAppDotNet48.Controllers
             }
             catch (Exception ex)
             {
-                return HandleApiException(ex);
+                var (status, body) = SaasusApiHelpers.HandleApiException(ex);
+                return Content(status, body);
             }
         }
 
@@ -520,8 +483,8 @@ namespace SampleWebAppDotNet48.Controllers
         {
             try
             {
-                var token = GetBearerToken(Request);
-                var authApiClientConfig = CreateClientConfiguration(c => c.GetAuthApiClientConfig());
+                var token = SaasusApiHelpers.GetBearerToken(Request);
+                var authApiClientConfig = SaasusApiHelpers.CreateClientConfiguration(c => c.GetAuthApiClientConfig(), Request);
                 var tenantAttributeApi = new TenantAttributeApi(authApiClientConfig);
                 var tenantAttributes = await tenantAttributeApi.GetTenantAttributesAsync();
 
@@ -529,7 +492,8 @@ namespace SampleWebAppDotNet48.Controllers
             }
             catch (Exception ex)
             {
-                return HandleApiException(ex);
+                var (status, body) = SaasusApiHelpers.HandleApiException(ex);
+                return Content(status, body);
             }
         }
 
@@ -549,9 +513,9 @@ namespace SampleWebAppDotNet48.Controllers
             try
             {
                 // Bearerトークンを取得
-                var token = GetBearerToken(Request);
+                var token = SaasusApiHelpers.GetBearerToken(Request);
                 // ユーザー情報の取得
-                var authApiClientConfig = CreateClientConfiguration(c => c.GetAuthApiClientConfig());
+                var authApiClientConfig = SaasusApiHelpers.CreateClientConfiguration(c => c.GetAuthApiClientConfig(), Request);
                 var userInfoApi = new UserInfoApi(authApiClientConfig);
                 var userInfo = await userInfoApi.GetUserInfoAsync(token);
                 if (userInfo.Tenants != null && userInfo.Tenants.Any())
@@ -631,7 +595,8 @@ namespace SampleWebAppDotNet48.Controllers
             }
             catch (Exception ex)
             {
-                return HandleApiException(ex);
+                var (status, body) = SaasusApiHelpers.HandleApiException(ex);
+                return Content(status, body);
             }
         }
 
@@ -664,8 +629,8 @@ namespace SampleWebAppDotNet48.Controllers
                     return BadRequest("The 'tenant_id' query parameter is required.");
                 }
 
-                var token = GetBearerToken(Request);
-                var authApiClientConfig = CreateClientConfiguration(c => c.GetAuthApiClientConfig());
+                var token = SaasusApiHelpers.GetBearerToken(Request);
+                var authApiClientConfig = SaasusApiHelpers.CreateClientConfiguration(c => c.GetAuthApiClientConfig(), Request);
                 var userInfoApi = new UserInfoApi(authApiClientConfig);
                 var userInfo = await userInfoApi.GetUserInfoAsync(token);
 
@@ -690,7 +655,8 @@ namespace SampleWebAppDotNet48.Controllers
             }
             catch (Exception ex)
             {
-                return HandleApiException(ex);
+                var (status, body) = SaasusApiHelpers.HandleApiException(ex);
+                return Content(status, body);
             }
         }
 
@@ -711,7 +677,7 @@ namespace SampleWebAppDotNet48.Controllers
                 // 招待を作成するユーザーのアクセストークンを取得
                 var accessToken = HttpContext.Current.Request.Headers.Get("X-Access-Token");
 
-                var authApiClientConfig = CreateClientConfiguration(c => c.GetAuthApiClientConfig());
+                var authApiClientConfig = SaasusApiHelpers.CreateClientConfiguration(c => c.GetAuthApiClientConfig(), Request);
                 var invitationApi = new InvitationApi(authApiClientConfig);
 
                 // envsに追加するオブジェクトを作成
@@ -737,7 +703,8 @@ namespace SampleWebAppDotNet48.Controllers
             }
             catch (Exception ex)
             {
-                return HandleApiException(ex);
+                var (status, body) = SaasusApiHelpers.HandleApiException(ex);
+                return Content(status, body);
             }
         }
 
@@ -749,10 +716,10 @@ namespace SampleWebAppDotNet48.Controllers
             try
             {
                 // IDトークン（Bearerトークン）を取得
-                var token = GetBearerToken(Request);
+                var token = SaasusApiHelpers.GetBearerToken(Request);
 
                 // 認証APIクライアントを初期化
-                var authApiClientConfig = CreateClientConfiguration(c => c.GetAuthApiClientConfig());
+                var authApiClientConfig = SaasusApiHelpers.CreateClientConfiguration(c => c.GetAuthApiClientConfig(), Request);
 
                 // ユーザー情報を取得
                 var userInfoApi = new UserInfoApi(authApiClientConfig);
@@ -767,7 +734,8 @@ namespace SampleWebAppDotNet48.Controllers
             }
             catch (Exception ex)
             {
-                return HandleApiException(ex);
+                var (status, body) = SaasusApiHelpers.HandleApiException(ex);
+                return Content(status, body);
             }
         }
 
@@ -779,7 +747,7 @@ namespace SampleWebAppDotNet48.Controllers
             try
             {
                 // トークンの取得
-                var token = GetBearerToken(Request);
+                var token = SaasusApiHelpers.GetBearerToken(Request);
                 var accessToken = HttpContext.Current.Request.Headers.Get("X-Access-Token");
 
                 if (string.IsNullOrEmpty(accessToken))
@@ -788,7 +756,7 @@ namespace SampleWebAppDotNet48.Controllers
                 }
 
                 // APIクライアント初期化
-                var authApiClientConfig = CreateClientConfiguration(c => c.GetAuthApiClientConfig());
+                var authApiClientConfig = SaasusApiHelpers.CreateClientConfiguration(c => c.GetAuthApiClientConfig(), Request);
 
                 // ユーザー情報取得
                 var userInfoApi = new UserInfoApi(authApiClientConfig);
@@ -808,7 +776,8 @@ namespace SampleWebAppDotNet48.Controllers
             }
             catch (Exception ex)
             {
-                return HandleApiException(ex);
+                var (status, body) = SaasusApiHelpers.HandleApiException(ex);
+                return Content(status, body);
             }
         }
 
@@ -820,7 +789,7 @@ namespace SampleWebAppDotNet48.Controllers
             try
             {
                 // トークンとX-Access-Tokenを取得
-                var token = GetBearerToken(Request);
+                var token = SaasusApiHelpers.GetBearerToken(Request);
                 var accessToken = HttpContext.Current.Request.Headers.Get("X-Access-Token");
                 var verificationCode = request.VerificationCode;
 
@@ -830,7 +799,7 @@ namespace SampleWebAppDotNet48.Controllers
                 }
 
                 // APIクライアント初期化とユーザー取得
-                var authApiClientConfig = CreateClientConfiguration(c => c.GetAuthApiClientConfig());
+                var authApiClientConfig = SaasusApiHelpers.CreateClientConfiguration(c => c.GetAuthApiClientConfig(), Request);
                 var userInfoApi = new UserInfoApi(authApiClientConfig);
                 var userInfo = await userInfoApi.GetUserInfoAsync(token);
 
@@ -845,7 +814,8 @@ namespace SampleWebAppDotNet48.Controllers
             }
             catch (Exception ex)
             {
-                return HandleApiException(ex);
+                var (status, body) = SaasusApiHelpers.HandleApiException(ex);
+                return Content(status, body);
             }
         }
 
@@ -856,8 +826,8 @@ namespace SampleWebAppDotNet48.Controllers
         {
             try
             {
-                var token = GetBearerToken(Request);
-                var authApiClientConfig = CreateClientConfiguration(c => c.GetAuthApiClientConfig());
+                var token = SaasusApiHelpers.GetBearerToken(Request);
+                var authApiClientConfig = SaasusApiHelpers.CreateClientConfiguration(c => c.GetAuthApiClientConfig(), Request);
                 var userInfoApi = new UserInfoApi(authApiClientConfig);
                 var userInfo = await userInfoApi.GetUserInfoAsync(token);
 
@@ -869,7 +839,8 @@ namespace SampleWebAppDotNet48.Controllers
             }
             catch (Exception ex)
             {
-                return HandleApiException(ex);
+                var (status, body) = SaasusApiHelpers.HandleApiException(ex);
+                return Content(status, body);
             }
         }
 
@@ -880,8 +851,8 @@ namespace SampleWebAppDotNet48.Controllers
         {
             try
             {
-                var token = GetBearerToken(Request);
-                var authApiClientConfig = CreateClientConfiguration(c => c.GetAuthApiClientConfig());
+                var token = SaasusApiHelpers.GetBearerToken(Request);
+                var authApiClientConfig = SaasusApiHelpers.CreateClientConfiguration(c => c.GetAuthApiClientConfig(), Request);
                 var userInfoApi = new UserInfoApi(authApiClientConfig);
                 var userInfo = await userInfoApi.GetUserInfoAsync(token);
 
@@ -893,7 +864,8 @@ namespace SampleWebAppDotNet48.Controllers
             }
             catch (Exception ex)
             {
-                return HandleApiException(ex);
+                var (status, body) = SaasusApiHelpers.HandleApiException(ex);
+                return Content(status, body);
             }
         }
 
