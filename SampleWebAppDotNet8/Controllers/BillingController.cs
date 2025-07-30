@@ -166,26 +166,26 @@ namespace SampleWebAppDotNet8.Controllers
           {
             /* ---------- fixed ---------- */
             case PricingFixedUnit u:
-              unitType = u.Type.ToString().ToLower();   // ← ★ enum → string
-              currencyStr = u.Currency.ToString();         // ← ★
+              unitType = u.Type.ToString().ToLower();
+              currencyStr = u.Currency.ToString();
               dispName = u.DisplayName;
               break;
 
             /* ---------- usage ---------- */
             case PricingUsageUnit u:
               unitName = u.MeteringUnitName;
-              unitType = u.Type.ToString().ToLower();   // ← ★
-              agg = u.AggregateUsage == AggregateUsage.Max ? "max" : "sum";  // ← ★ enum 比較
-              currencyStr = u.Currency.ToString();         // ← ★
+              unitType = u.Type.ToString().ToLower();
+              agg = u.AggregateUsage == AggregateUsage.Max ? "max" : "sum";
+              currencyStr = u.Currency.ToString();
               dispName = u.DisplayName;
               break;
 
             /* ---------- tiered ---------- */
             case PricingTieredUnit u:
               unitName = u.MeteringUnitName;
-              unitType = u.Type.ToString().ToLower();   // ← ★
-              agg = u.AggregateUsage == AggregateUsage.Max ? "max" : "sum";  // ← ★
-              currencyStr = u.Currency.ToString();         // ← ★
+              unitType = u.Type.ToString().ToLower();
+              agg = u.AggregateUsage == AggregateUsage.Max ? "max" : "sum";
+              currencyStr = u.Currency.ToString();
               dispName = u.DisplayName;
               break;
 
@@ -246,6 +246,7 @@ namespace SampleWebAppDotNet8.Controllers
 
       return (billings, totals);
     }
+
     /// <summary>
     /// 課金ダッシュボード取得
     /// </summary>
@@ -278,7 +279,7 @@ namespace SampleWebAppDotNet8.Controllers
         // プラン取得
         var plansApi = new PricingPlansApi(pricingConfig);
         var plan = await plansApi.GetPricingPlanAsync(planId);
-        // テナント取得を追加
+        // テナント取得
         var tenantApi = new TenantApi(authApiClientConfig);
         var tenant = await tenantApi.GetTenantAsync(tenantId);
 
@@ -387,7 +388,7 @@ namespace SampleWebAppDotNet8.Controllers
             continue;
           }
 
-          // プラン取得（取得できなければスキップ）
+          // プラン取得
           var plan = await plansApi.GetPricingPlanAsync(planId);
 
           // 開始・終了日時
