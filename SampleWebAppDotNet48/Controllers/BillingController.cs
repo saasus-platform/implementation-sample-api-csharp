@@ -168,6 +168,10 @@ namespace SampleWebAppDotNet48.Controllers
                     double count = 0.0;
                     if (unitType != "fixed")
                     {
+                        if (unitName == null)
+                        {
+                            throw new InvalidOperationException("Metering unit name is null for a non-fixed unit type. This is not allowed.");
+                        }
                         double cached;
                         if (!usageCache.TryGetValue(unitName, out cached))
                         {

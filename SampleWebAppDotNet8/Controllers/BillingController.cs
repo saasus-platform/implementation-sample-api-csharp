@@ -15,10 +15,12 @@ namespace SampleWebAppDotNet8.Controllers
   public class BillingController : ControllerBase
   {
     private readonly IConfiguration _configuration;
+    private readonly ILogger<BillingController> _logger;
 
-    public BillingController(IConfiguration configuration)
+    public BillingController(IConfiguration configuration, ILogger<BillingController> logger)
     {
       _configuration = configuration;
+      _logger = logger;
     }
 
     // 課金アクセス権限チェック
@@ -204,17 +206,22 @@ namespace SampleWebAppDotNet8.Controllers
           double count = 0.0;
           if (unitType != "fixed")
           {
-            if (!usageCache.TryGetValue(unitName!, out count))
+            if (unitName == null)
+            {
+              // Skip this unit if unitName is null to prevent runtime exceptions
+              continue;
+            }
+            if (!usageCache.TryGetValue(unitName, out count))
             {
               var resp = await meteringApi
                   .GetMeteringUnitDateCountByTenantIdAndUnitNameAndDatePeriodAsync(
-                      tenantId, unitName!, (int)periodStart, (int)periodEnd);
+                      tenantId, unitName, (int)periodStart, (int)periodEnd);
 
               count = agg == "max"
                     ? resp.Counts.Max(c => (double)c.Count)
                     : resp.Counts.Sum(c => (double)c.Count);
 
-              usageCache[unitName!] = count;
+              usageCache[unitName] = count;
             }
           }
 
@@ -463,7 +470,7 @@ namespace SampleWebAppDotNet8.Controllers
       }
       catch (Exception e)
       {
-        Console.WriteLine($"[PlanHasYearUnit] {e.Message}");
+        _logger.LogError(e, "[PlanHasYearUnit] Error occurred while checking for year unit in plan");
       }
       return false;
     }

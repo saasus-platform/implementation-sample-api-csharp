@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using authapi.Api;   // Configuration クラスの名前空間
 using modules;
 
 namespace SampleWebAppDotNet8.Helpers
@@ -39,7 +38,7 @@ namespace SampleWebAppDotNet8.Helpers
       if (context.Request.Headers.TryGetValue("Authorization", out var authHeader) &&
           authHeader.ToString().StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
       {
-        return authHeader.ToString()["Bearer ".Length..].Trim();
+        return authHeader.ToString().Substring("Bearer ".Length).Trim();
       }
       return null;
     }
