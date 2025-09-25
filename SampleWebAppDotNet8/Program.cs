@@ -9,6 +9,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.EntityFrameworkCore;
+using SampleWebAppDotNet8.Helpers;
 
 using authapi.Api;
 using authapi.Model;
@@ -46,6 +47,9 @@ namespace SampleWebApp
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
+            // コントローラーサポートを追加
+            builder.Services.AddControllers();
+
             // appsettings.json の読み込み
             var config = new ConfigurationBuilder()
                 .AddJsonFile("appsettings.json")
@@ -79,46 +83,6 @@ namespace SampleWebApp
 
             // CORSポリシーを適用
             app.UseCors("CorsPolicy");
-
-
-            // Refererを設定する共通クライアント設定
-            dynamic CreateClientConfiguration(Func<Configuration, dynamic> configSelector, HttpContext context)
-            {
-                var config = new Configuration();
-                var clientConfig = configSelector(config);
-
-                if (context.Request.Headers.TryGetValue("Referer", out var referer))
-                {
-                    clientConfig.SetReferer(referer.ToString());
-                }
-
-                return clientConfig;
-            }
-
-            // Bearerトークンを取得
-            string? GetBearerToken(HttpContext context)
-            {
-                if (context.Request.Headers.TryGetValue("Authorization", out var authHeader) &&
-                    authHeader.ToString().StartsWith("Bearer "))
-                {
-                    return authHeader.ToString().Substring("Bearer ".Length).Trim();
-                }
-                return null;
-            }
-
-            // エラーハンドリング共通処理
-            IResult HandleApiException(Exception ex)
-            {
-                if (ex is authapi.Client.ApiException authApiEx)
-                {
-                    return Results.Problem(detail: authApiEx.Message, statusCode: (int)authApiEx.ErrorCode);
-                }
-                else if (ex is billingapi.Client.ApiException billingApiEx)
-                {
-                    return Results.Problem(detail: billingApiEx.Message, statusCode: (int)billingApiEx.ErrorCode);
-                }
-                return Results.Problem(detail: ex.Message, statusCode: 500);
-            }
 
             static object ConvertToExpectedType(object value, string expectedType)
             {
@@ -155,7 +119,7 @@ namespace SampleWebApp
 
                 try
                 {
-                    var authApiClientConfig = CreateClientConfiguration(c => c.GetAuthApiClientConfig(), context);
+                    var authApiClientConfig = SaasusApiHelpers.CreateClientConfiguration(c => c.GetAuthApiClientConfig(), context);
                     var credentialApi = new CredentialApi(authApiClientConfig);
                     var credentials = await credentialApi.GetAuthCredentialsAsync(code, "tempCodeAuth", null);
 
@@ -165,7 +129,7 @@ namespace SampleWebApp
                 }
                 catch (Exception ex)
                 {
-                    return HandleApiException(ex);
+                    return SaasusApiHelpers.HandleApiException(ex);
                 }
             });
 
@@ -179,7 +143,7 @@ namespace SampleWebApp
 
                 try
                 {
-                    var authApiClientConfig = CreateClientConfiguration(c => c.GetAuthApiClientConfig(), context);
+                    var authApiClientConfig = SaasusApiHelpers.CreateClientConfiguration(c => c.GetAuthApiClientConfig(), context);
                     var credentialApi = new CredentialApi(authApiClientConfig);
                     var credentials = await credentialApi.GetAuthCredentialsAsync(null, "refreshTokenAuth", refreshToken);
 
@@ -189,13 +153,13 @@ namespace SampleWebApp
                 }
                 catch (Exception ex)
                 {
-                    return HandleApiException(ex);
+                    return SaasusApiHelpers.HandleApiException(ex);
                 }
             });
 
             app.MapGet("/userinfo", async (HttpContext context) =>
             {
-                var token = GetBearerToken(context);
+                var token = SaasusApiHelpers.GetBearerToken(context);
                 if (string.IsNullOrEmpty(token))
                 {
                     return Results.Unauthorized();
@@ -203,7 +167,7 @@ namespace SampleWebApp
 
                 try
                 {
-                    var authApiClientConfig = CreateClientConfiguration(c => c.GetAuthApiClientConfig(), context);
+                    var authApiClientConfig = SaasusApiHelpers.CreateClientConfiguration(c => c.GetAuthApiClientConfig(), context);
                     var userInfoApi = new UserInfoApi(authApiClientConfig);
                     var userInfo = await userInfoApi.GetUserInfoAsync(token);
 
@@ -213,13 +177,13 @@ namespace SampleWebApp
                 }
                 catch (Exception ex)
                 {
-                    return HandleApiException(ex);
+                    return SaasusApiHelpers.HandleApiException(ex);
                 }
             });
 
             app.MapGet("/users", async (HttpContext context) =>
             {
-                var token = GetBearerToken(context);
+                var token = SaasusApiHelpers.GetBearerToken(context);
                 if (string.IsNullOrEmpty(token))
                 {
                     return Results.Unauthorized();
@@ -227,7 +191,7 @@ namespace SampleWebApp
 
                 try
                 {
-                    var authApiClientConfig = CreateClientConfiguration(c => c.GetAuthApiClientConfig(), context);
+                    var authApiClientConfig = SaasusApiHelpers.CreateClientConfiguration(c => c.GetAuthApiClientConfig(), context);
                     var userInfoApi = new UserInfoApi(authApiClientConfig);
                     var userInfo = await userInfoApi.GetUserInfoAsync(token);
 
@@ -268,13 +232,13 @@ namespace SampleWebApp
                 }
                 catch (Exception ex)
                 {
-                    return HandleApiException(ex);
+                    return SaasusApiHelpers.HandleApiException(ex);
                 }
             });
 
             app.MapGet("/tenant_attributes", async (HttpContext context) =>
             {
-                var token = GetBearerToken(context);
+                var token = SaasusApiHelpers.GetBearerToken(context);
                 if (string.IsNullOrEmpty(token))
                 {
                     return Results.Unauthorized();
@@ -283,7 +247,7 @@ namespace SampleWebApp
                 try
                 {
 
-                    var authApiClientConfig = CreateClientConfiguration(c => c.GetAuthApiClientConfig(), context);
+                    var authApiClientConfig = SaasusApiHelpers.CreateClientConfiguration(c => c.GetAuthApiClientConfig(), context);
                     var userInfoApi = new UserInfoApi(authApiClientConfig);
                     var userInfo = await userInfoApi.GetUserInfoAsync(token);
                     if (userInfo.Tenants == null || !userInfo.Tenants.Any())
@@ -336,13 +300,13 @@ namespace SampleWebApp
                 }
                 catch (Exception ex)
                 {
-                    return HandleApiException(ex);
+                    return SaasusApiHelpers.HandleApiException(ex);
                 }
             });
 
             app.MapGet("/user_attributes", async (HttpContext context) =>
             {
-                var token = GetBearerToken(context);
+                var token = SaasusApiHelpers.GetBearerToken(context);
                 if (string.IsNullOrEmpty(token))
                 {
                     return Results.Unauthorized();
@@ -350,7 +314,7 @@ namespace SampleWebApp
 
                 try
                 {
-                    var authApiClientConfig = CreateClientConfiguration(c => c.GetAuthApiClientConfig(), context);
+                    var authApiClientConfig = SaasusApiHelpers.CreateClientConfiguration(c => c.GetAuthApiClientConfig(), context);
                     var userAttributeApi = new UserAttributeApi(authApiClientConfig);
                     var userAttributes = await userAttributeApi.GetUserAttributesAsync();
 
@@ -360,13 +324,13 @@ namespace SampleWebApp
                 }
                 catch (Exception ex)
                 {
-                    return HandleApiException(ex);
+                    return SaasusApiHelpers.HandleApiException(ex);
                 }
             });
 
             app.MapGet("/pricing_plan", async (HttpContext context, string plan_id) =>
             {
-                var token = GetBearerToken(context);
+                var token = SaasusApiHelpers.GetBearerToken(context);
                 if (string.IsNullOrEmpty(token))
                 {
                     return Results.Unauthorized();
@@ -379,7 +343,7 @@ namespace SampleWebApp
 
                 try
                 {
-                    var pricingConfig = CreateClientConfiguration(c => c.GetPricingApiClientConfig(), context);
+                    var pricingConfig = SaasusApiHelpers.CreateClientConfiguration(c => c.GetPricingApiClientConfig(), context);
                     var pricingPlansApi = new PricingPlansApi(pricingConfig);
                     var plan = await pricingPlansApi.GetPricingPlanAsync(plan_id);
 
@@ -389,14 +353,14 @@ namespace SampleWebApp
                 }
                 catch (Exception ex)
                 {
-                    return HandleApiException(ex);
+                    return SaasusApiHelpers.HandleApiException(ex);
                 }
             });
 
 
             app.MapPost("/user_register", async ([FromBody] UserRegisterRequest requestBody, HttpContext context) =>
             {
-                var token = GetBearerToken(context);
+                var token = SaasusApiHelpers.GetBearerToken(context);
                 if (string.IsNullOrEmpty(token))
                 {
                     return Results.Unauthorized();
@@ -419,7 +383,7 @@ namespace SampleWebApp
                 try
                 {
                     // ユーザー情報の取得
-                    var authApiClientConfig = CreateClientConfiguration(c => c.GetAuthApiClientConfig(), context);
+                    var authApiClientConfig = SaasusApiHelpers.CreateClientConfiguration(c => c.GetAuthApiClientConfig(), context);
                     var userInfoApi = new UserInfoApi(authApiClientConfig);
                     var userInfo = await userInfoApi.GetUserInfoAsync(token);
                     if (userInfo.Tenants == null || !userInfo.Tenants.Any())
@@ -487,7 +451,7 @@ namespace SampleWebApp
 
             app.MapDelete("/user_delete", async ([FromBody] UserDeleteRequest requestBody, HttpContext context, ApplicationDbContext dbContext) =>
             {
-                var token = GetBearerToken(context);
+                var token = SaasusApiHelpers.GetBearerToken(context);
                 if (string.IsNullOrEmpty(token))
                 {
                     return Results.Unauthorized();
@@ -508,7 +472,7 @@ namespace SampleWebApp
                 try
                 {
                     // ユーザー情報の取得
-                    var authApiClientConfig = CreateClientConfiguration(c => c.GetAuthApiClientConfig(), context);
+                    var authApiClientConfig = SaasusApiHelpers.CreateClientConfiguration(c => c.GetAuthApiClientConfig(), context);
                     var userInfoApi = new UserInfoApi(authApiClientConfig);
                     var userInfo = userInfoApi.GetUserInfo(token);
                     if (userInfo.Tenants == null || !userInfo.Tenants.Any())
@@ -544,7 +508,7 @@ namespace SampleWebApp
                 }
                 catch (Exception ex)
                 {
-                    return HandleApiException(ex);
+                    return SaasusApiHelpers.HandleApiException(ex);
                 }
             });
 
@@ -558,7 +522,7 @@ namespace SampleWebApp
                 }
 
                 // ユーザー情報を取得
-                var token = GetBearerToken(context);
+                var token = SaasusApiHelpers.GetBearerToken(context);
                 if (string.IsNullOrEmpty(token))
                 {
                     return Results.Unauthorized();
@@ -566,7 +530,7 @@ namespace SampleWebApp
 
                 try
                 {
-                    var authApiClientConfig = CreateClientConfiguration(c => c.GetAuthApiClientConfig(), context);
+                    var authApiClientConfig = SaasusApiHelpers.CreateClientConfiguration(c => c.GetAuthApiClientConfig(), context);
                     var userInfoApi = new UserInfoApi(authApiClientConfig);
                     var userInfo = await userInfoApi.GetUserInfoAsync(token);
 
@@ -608,7 +572,7 @@ namespace SampleWebApp
 
             app.MapGet("/tenant_attributes_list", async (HttpContext context) =>
             {
-                var token = GetBearerToken(context);
+                var token = SaasusApiHelpers.GetBearerToken(context);
                 if (string.IsNullOrEmpty(token))
                 {
                     return Results.Unauthorized();
@@ -616,7 +580,7 @@ namespace SampleWebApp
 
                 try
                 {
-                    var authApiClientConfig = CreateClientConfiguration(c => c.GetAuthApiClientConfig(), context);
+                    var authApiClientConfig = SaasusApiHelpers.CreateClientConfiguration(c => c.GetAuthApiClientConfig(), context);
                     var tenantAttributeApi = new TenantAttributeApi(authApiClientConfig);
                     var tenantAttributes = await tenantAttributeApi.GetTenantAttributesAsync();
 
@@ -626,13 +590,13 @@ namespace SampleWebApp
                 }
                 catch (Exception ex)
                 {
-                    return HandleApiException(ex);
+                    return SaasusApiHelpers.HandleApiException(ex);
                 }
             });
 
             app.MapPost("/self_sign_up", async ([FromBody] SelfSignUpRequest requestBody, HttpContext context) =>
             {
-                var token = GetBearerToken(context);
+                var token = SaasusApiHelpers.GetBearerToken(context);
                 if (string.IsNullOrEmpty(token))
                 {
                     return Results.Unauthorized();
@@ -654,7 +618,7 @@ namespace SampleWebApp
                 try
                 {
                     // ユーザー情報の取得
-                    var authApiClientConfig = CreateClientConfiguration(c => c.GetAuthApiClientConfig(), context);
+                    var authApiClientConfig = SaasusApiHelpers.CreateClientConfiguration(c => c.GetAuthApiClientConfig(), context);
                     var userInfoApi = new UserInfoApi(authApiClientConfig);
                     var userInfo = await userInfoApi.GetUserInfoAsync(token);
                     if (userInfo.Tenants != null && userInfo.Tenants.Any())
@@ -734,7 +698,7 @@ namespace SampleWebApp
 
             app.MapGet("/invitations", async (HttpContext context) =>
             {
-                var token = GetBearerToken(context);
+                var token = SaasusApiHelpers.GetBearerToken(context);
                 if (string.IsNullOrEmpty(token))
                 {
                     return Results.Unauthorized();
@@ -742,7 +706,7 @@ namespace SampleWebApp
 
                 try
                 {
-                    var authApiClientConfig = CreateClientConfiguration(c => c.GetAuthApiClientConfig(), context);
+                    var authApiClientConfig = SaasusApiHelpers.CreateClientConfiguration(c => c.GetAuthApiClientConfig(), context);
                     var userInfoApi = new UserInfoApi(authApiClientConfig);
                     var userInfo = await userInfoApi.GetUserInfoAsync(token);
 
@@ -778,13 +742,13 @@ namespace SampleWebApp
                 }
                 catch (Exception ex)
                 {
-                    return HandleApiException(ex);
+                    return SaasusApiHelpers.HandleApiException(ex);
                 }
             });
 
             app.MapPost("/user_invitation", async ([FromBody] UserInvitationRequest requestBody, HttpContext context) =>
             {
-                var token = GetBearerToken(context);
+                var token = SaasusApiHelpers.GetBearerToken(context);
                 if (string.IsNullOrEmpty(token))
                 {
                     return Results.Unauthorized();
@@ -813,7 +777,7 @@ namespace SampleWebApp
                         return Results.Unauthorized();
                     }
 
-                    var authApiClientConfig = CreateClientConfiguration(c => c.GetAuthApiClientConfig(), context);
+                    var authApiClientConfig = SaasusApiHelpers.CreateClientConfiguration(c => c.GetAuthApiClientConfig(), context);
                     var invitationApi = new InvitationApi(authApiClientConfig);
 
                     // envsに追加するオブジェクトを作成
@@ -847,7 +811,7 @@ namespace SampleWebApp
             app.MapGet("/mfa_status", async (HttpContext context) =>
             {
                 // AuthorizationヘッダーからBearerトークンを取得
-                var token = GetBearerToken(context);
+                var token = SaasusApiHelpers.GetBearerToken(context);
                 if (string.IsNullOrEmpty(token))
                 {
                     return Results.Unauthorized();
@@ -856,7 +820,7 @@ namespace SampleWebApp
                 try
                 {
                     // APIクライアントを初期化し、ユーザー情報を取得
-                    var authApiClientConfig = CreateClientConfiguration(c => c.GetAuthApiClientConfig(), context);
+                    var authApiClientConfig = SaasusApiHelpers.CreateClientConfiguration(c => c.GetAuthApiClientConfig(), context);
                     var userInfoApi = new UserInfoApi(authApiClientConfig);
                     var userInfo = await userInfoApi.GetUserInfoAsync(token);
 
@@ -869,14 +833,14 @@ namespace SampleWebApp
                 }
                 catch (Exception ex)
                 {
-                    return HandleApiException(ex);
+                    return SaasusApiHelpers.HandleApiException(ex);
                 }
             });
 
             app.MapGet("/mfa_setup", async (HttpContext context) =>
             {
                 // アクセストークン（X-Access-Token）とIDトークン（Authorization）を取得
-                var token = GetBearerToken(context);
+                var token = SaasusApiHelpers.GetBearerToken(context);
                 var accessToken = context.Request.Headers["X-Access-Token"].FirstOrDefault();
                 if (string.IsNullOrEmpty(token) || string.IsNullOrEmpty(accessToken))
                 {
@@ -886,7 +850,7 @@ namespace SampleWebApp
                 try
                 {
                     // ユーザー情報を取得
-                    var authApiClientConfig = CreateClientConfiguration(c => c.GetAuthApiClientConfig(), context);
+                    var authApiClientConfig = SaasusApiHelpers.CreateClientConfiguration(c => c.GetAuthApiClientConfig(), context);
                     var userInfoApi = new UserInfoApi(authApiClientConfig);
                     var userInfo = await userInfoApi.GetUserInfoAsync(token);
 
@@ -904,14 +868,14 @@ namespace SampleWebApp
                 }
                 catch (Exception ex)
                 {
-                    return HandleApiException(ex);
+                    return SaasusApiHelpers.HandleApiException(ex);
                 }
             });
 
             app.MapPost("/mfa_verify", async ([FromBody] MfaVerifyRequest requestBody, HttpContext context) =>
             {
                 // トークンと認証コードを取得
-                var token = GetBearerToken(context);
+                var token = SaasusApiHelpers.GetBearerToken(context);
                 var accessToken = context.Request.Headers["X-Access-Token"].FirstOrDefault(); 
                 string verificationCode = requestBody.VerificationCode;
 
@@ -923,7 +887,7 @@ namespace SampleWebApp
                 try
                 {
                     // ユーザー情報取得
-                    var authApiClientConfig = CreateClientConfiguration(c => c.GetAuthApiClientConfig(), context);
+                    var authApiClientConfig = SaasusApiHelpers.CreateClientConfiguration(c => c.GetAuthApiClientConfig(), context);
                     var userInfoApi = new UserInfoApi(authApiClientConfig);
                     var userInfo = await userInfoApi.GetUserInfoAsync(token);
 
@@ -938,14 +902,14 @@ namespace SampleWebApp
                 }
                 catch (Exception ex)
                 {
-                    return HandleApiException(ex);
+                    return SaasusApiHelpers.HandleApiException(ex);
                 }
             });
 
             app.MapPost("/mfa_enable", async (HttpContext context) =>
             {
                 // IDトークン取得
-                var token = GetBearerToken(context);
+                var token = SaasusApiHelpers.GetBearerToken(context);
                 if (string.IsNullOrEmpty(token))
                 {
                     return Results.Unauthorized();
@@ -954,7 +918,7 @@ namespace SampleWebApp
                 try
                 {
                     // ユーザー情報取得
-                    var authApiClientConfig = CreateClientConfiguration(c => c.GetAuthApiClientConfig(), context);
+                    var authApiClientConfig = SaasusApiHelpers.CreateClientConfiguration(c => c.GetAuthApiClientConfig(), context);
                     var userInfoApi = new UserInfoApi(authApiClientConfig);
                     var userInfo = await userInfoApi.GetUserInfoAsync(token);
 
@@ -967,14 +931,14 @@ namespace SampleWebApp
                 }
                 catch (Exception ex)
                 {
-                    return HandleApiException(ex);
+                    return SaasusApiHelpers.HandleApiException(ex);
                 }
             });
 
             app.MapPost("/mfa_disable", async (HttpContext context) =>
             {
                 // IDトークン取得
-                var token = GetBearerToken(context);
+                var token = SaasusApiHelpers.GetBearerToken(context);
                 if (string.IsNullOrEmpty(token))
                 {
                     return Results.Unauthorized();
@@ -983,7 +947,7 @@ namespace SampleWebApp
                 try
                 {
                     // ユーザー情報取得
-                    var authApiClientConfig = CreateClientConfiguration(c => c.GetAuthApiClientConfig(), context);
+                    var authApiClientConfig = SaasusApiHelpers.CreateClientConfiguration(c => c.GetAuthApiClientConfig(), context);
                     var userInfoApi = new UserInfoApi(authApiClientConfig);
                     var userInfo = await userInfoApi.GetUserInfoAsync(token);
 
@@ -996,9 +960,12 @@ namespace SampleWebApp
                 }
                 catch (Exception ex)
                 {
-                    return HandleApiException(ex);
+                    return SaasusApiHelpers.HandleApiException(ex);
                 }
             });
+
+            // コントローラーのルーティングを追加
+            app.MapControllers();
 
             app.Run();
 
