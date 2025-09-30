@@ -43,37 +43,5 @@ namespace SampleWebAppDotNet8.Helpers
       return null;
     }
 
-    /// <summary>
-    /// SaaSus SDK の ApiException → HTTP レスポンス変換
-    /// Minimal-API 用 IResult を返す版
-    /// </summary>
-    public static IResult HandleApiException(Exception ex)
-    {
-      return ex switch
-      {
-        authapi.Client.ApiException aex => Results.Problem(aex.Message,
-                                                              statusCode: (int)aex.ErrorCode),
-        pricingapi.Client.ApiException pex => Results.Problem(pex.Message,
-                                                              statusCode: (int)pex.ErrorCode),
-        /* 例外型を追加したいときは ↓ にケースを足すだけ */
-        // billingapi.Client.ApiException bex => Results.Problem(bex.Message, (int)bex.ErrorCode),
-
-        _ => Results.Problem(ex.Message, statusCode: 500)
-      };
-    }
-
-    public static IActionResult HandleApiExceptionMvc(Exception ex, ControllerBase ctrl)
-    {
-        return ex switch
-        {
-            authapi.Client.ApiException a =>
-                ctrl.Problem(detail: a.Message, statusCode: (int)a.ErrorCode),
-
-            pricingapi.Client.ApiException p =>
-                ctrl.Problem(detail: p.Message, statusCode: (int)p.ErrorCode),
-
-            _ => ctrl.Problem(detail: ex.Message, statusCode: 500)
-        };
-    }
   }
 }

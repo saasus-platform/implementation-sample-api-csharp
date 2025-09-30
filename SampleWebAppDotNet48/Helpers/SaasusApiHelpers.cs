@@ -67,15 +67,15 @@ namespace SampleWebAppDotNet48.Helpers
       {
         case authapi.Client.ApiException a:
           Debug.WriteLine($"Auth API Error: {a.ErrorCode} - {a.Message}");
-          return ((HttpStatusCode)a.ErrorCode, new { error = a.Message });
+          return ((HttpStatusCode)a.ErrorCode, new { detail = a.ErrorContent ?? a.Message });
 
         case pricingapi.Client.ApiException p:
           Debug.WriteLine($"Pricing API Error: {p.ErrorCode} - {p.Message}");
-          return ((HttpStatusCode)p.ErrorCode, new { error = p.Message });
+          return ((HttpStatusCode)p.ErrorCode, new { detail = p.ErrorContent ?? p.Message });
 
         default:
           Debug.WriteLine($"Unhandled Error: {ex.Message}");
-          return (HttpStatusCode.InternalServerError, new { error = ex.Message });
+          return (HttpStatusCode.InternalServerError, new { detail = ex.Message });
       }
     }
   }

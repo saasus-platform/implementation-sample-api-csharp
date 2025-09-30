@@ -129,7 +129,8 @@ namespace SampleWebApp
                 }
                 catch (Exception ex)
                 {
-                    return SaasusApiHelpers.HandleApiException(ex);
+                    Console.WriteLine($"Failed to get credentials: {ex.Message}");
+                    return Results.Problem("Failed to get credentials", statusCode: 500);
                 }
             });
 
@@ -153,7 +154,8 @@ namespace SampleWebApp
                 }
                 catch (Exception ex)
                 {
-                    return SaasusApiHelpers.HandleApiException(ex);
+                    Console.WriteLine($"Failed to refresh credentials: {ex.Message}");
+                    return Results.Problem("Failed to refresh credentials", statusCode: 500);
                 }
             });
 
@@ -177,7 +179,8 @@ namespace SampleWebApp
                 }
                 catch (Exception ex)
                 {
-                    return SaasusApiHelpers.HandleApiException(ex);
+                    Console.WriteLine($"Failed to get user info: {ex.Message}");
+                    return Results.Problem("Failed to get user info", statusCode: 500);
                 }
             });
 
@@ -232,7 +235,8 @@ namespace SampleWebApp
                 }
                 catch (Exception ex)
                 {
-                    return SaasusApiHelpers.HandleApiException(ex);
+                    Console.WriteLine($"Failed to get users: {ex.Message}");
+                    return Results.Problem("Failed to get users", statusCode: 500);
                 }
             });
 
@@ -300,7 +304,8 @@ namespace SampleWebApp
                 }
                 catch (Exception ex)
                 {
-                    return SaasusApiHelpers.HandleApiException(ex);
+                    Console.WriteLine($"Failed to get tenant attributes: {ex.Message}");
+                    return Results.Problem("Failed to get tenant attributes", statusCode: 500);
                 }
             });
 
@@ -324,7 +329,8 @@ namespace SampleWebApp
                 }
                 catch (Exception ex)
                 {
-                    return SaasusApiHelpers.HandleApiException(ex);
+                    Console.WriteLine($"Failed to get user attributes: {ex.Message}");
+                    return Results.Problem("Failed to get user attributes", statusCode: 500);
                 }
             });
 
@@ -353,7 +359,8 @@ namespace SampleWebApp
                 }
                 catch (Exception ex)
                 {
-                    return SaasusApiHelpers.HandleApiException(ex);
+                    Console.WriteLine($"Failed to get pricing plan: {ex.Message}");
+                    return Results.Problem("Failed to get pricing plan", statusCode: 500);
                 }
             });
 
@@ -444,8 +451,8 @@ namespace SampleWebApp
                 }
                 catch (Exception ex)
                 {
-                    Console.Error.WriteLine($"Error: {ex.Message}");
-                    return Results.Problem(detail: ex.Message, statusCode: 500);
+                    Console.WriteLine($"Failed to register user: {ex.Message}");
+                    return Results.Problem("Failed to register user", statusCode: 500);
                 }
             });
 
@@ -508,7 +515,8 @@ namespace SampleWebApp
                 }
                 catch (Exception ex)
                 {
-                    return SaasusApiHelpers.HandleApiException(ex);
+                    Console.WriteLine($"Failed to delete user: {ex.Message}");
+                    return Results.Problem("Failed to delete user", statusCode: 500);
                 }
             });
 
@@ -565,8 +573,8 @@ namespace SampleWebApp
                 }
                 catch (Exception ex)
                 {
-                    Console.Error.WriteLine($"Error: {ex.Message}");
-                    return Results.Problem(detail: ex.Message, statusCode: 500);
+                    Console.WriteLine($"Failed to get delete user log: {ex.Message}");
+                    return Results.Problem("Failed to get delete user log", statusCode: 500);
                 }
             });
 
@@ -590,7 +598,8 @@ namespace SampleWebApp
                 }
                 catch (Exception ex)
                 {
-                    return SaasusApiHelpers.HandleApiException(ex);
+                    Console.WriteLine($"Failed to get tenant attributes list: {ex.Message}");
+                    return Results.Problem("Failed to get tenant attributes list", statusCode: 500);
                 }
             });
 
@@ -684,8 +693,8 @@ namespace SampleWebApp
                 }
                 catch (Exception ex)
                 {
-                    Console.Error.WriteLine($"Error: {ex.Message}");
-                    return Results.Problem(detail: ex.Message, statusCode: 500);
+                    Console.WriteLine($"Failed to self sign up: {ex.Message}");
+                    return Results.Problem("Failed to self sign up", statusCode: 500);
                 }
             });
 
@@ -742,7 +751,8 @@ namespace SampleWebApp
                 }
                 catch (Exception ex)
                 {
-                    return SaasusApiHelpers.HandleApiException(ex);
+                    Console.WriteLine($"Failed to get invitations: {ex.Message}");
+                    return Results.Problem("Failed to get invitations", statusCode: 500);
                 }
             });
 
@@ -803,8 +813,8 @@ namespace SampleWebApp
                 }
                 catch (Exception ex)
                 {
-                    Console.Error.WriteLine($"Error: {ex.Message}");
-                    return Results.Problem(detail: ex.Message, statusCode: 500);
+                    Console.WriteLine($"Failed to invite user: {ex.Message}");
+                    return Results.Problem("Failed to invite user", statusCode: 500);
                 }
             });
 
@@ -833,7 +843,8 @@ namespace SampleWebApp
                 }
                 catch (Exception ex)
                 {
-                    return SaasusApiHelpers.HandleApiException(ex);
+                    Console.WriteLine($"Failed to get MFA status: {ex.Message}");
+                    return Results.Problem("Failed to get MFA status", statusCode: 500);
                 }
             });
 
@@ -868,7 +879,8 @@ namespace SampleWebApp
                 }
                 catch (Exception ex)
                 {
-                    return SaasusApiHelpers.HandleApiException(ex);
+                    Console.WriteLine($"Failed to setup MFA: {ex.Message}");
+                    return Results.Problem("Failed to setup MFA", statusCode: 500);
                 }
             });
 
@@ -902,7 +914,8 @@ namespace SampleWebApp
                 }
                 catch (Exception ex)
                 {
-                    return SaasusApiHelpers.HandleApiException(ex);
+                    Console.WriteLine($"Failed to verify MFA: {ex.Message}");
+                    return Results.Problem("Failed to verify MFA", statusCode: 500);
                 }
             });
 
@@ -931,7 +944,8 @@ namespace SampleWebApp
                 }
                 catch (Exception ex)
                 {
-                    return SaasusApiHelpers.HandleApiException(ex);
+                    Console.WriteLine($"Failed to enable MFA: {ex.Message}");
+                    return Results.Problem("Failed to enable MFA", statusCode: 500);
                 }
             });
 
@@ -960,7 +974,8 @@ namespace SampleWebApp
                 }
                 catch (Exception ex)
                 {
-                    return SaasusApiHelpers.HandleApiException(ex);
+                    Console.WriteLine($"Failed to disable MFA: {ex.Message}");
+                    return Results.Problem("Failed to disable MFA", statusCode: 500);
                 }
             });
 
