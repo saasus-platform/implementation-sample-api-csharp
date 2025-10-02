@@ -537,7 +537,7 @@ namespace SampleWebAppDotNet48.Controllers
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Failed to update metering count now: {ex.Message}");
-                return Content(HttpStatusCode.InternalServerError, new { error = "Failed to update metering count" });
+                return Content(HttpStatusCode.InternalServerError, new { error = "Failed to update metering count now" });
             }
         }
 
