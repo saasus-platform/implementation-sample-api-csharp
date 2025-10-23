@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
+using System.Text.Json.Serialization;
 using System.Collections.Concurrent;
 using System.ComponentModel.DataAnnotations;
 using SampleWebAppDotNet8.Helpers;
@@ -334,7 +336,8 @@ namespace SampleWebAppDotNet8.Controllers
       }
       catch (Exception ex)
       {
-        return SaasusApiHelpers.HandleApiExceptionMvc(ex, this);
+        _logger.LogError(ex, "Failed to get billing dashboard");
+        return StatusCode(500, new { error = "Failed to get billing dashboard" });
       }
     }
 
@@ -448,7 +451,8 @@ namespace SampleWebAppDotNet8.Controllers
       }
       catch (Exception ex)
       {
-        return SaasusApiHelpers.HandleApiExceptionMvc(ex, this);
+        _logger.LogError(ex, "Failed to get plan periods");
+        return StatusCode(500, new { error = "Failed to get plan periods" });
       }
     }
 
@@ -548,7 +552,8 @@ namespace SampleWebAppDotNet8.Controllers
       }
       catch (Exception ex)
       {
-        return SaasusApiHelpers.HandleApiExceptionMvc(ex, this);
+        _logger.LogError(ex, "Failed to update metering count");
+        return StatusCode(500, new { error = "Failed to update metering count" });
       }
     }
 
@@ -609,7 +614,205 @@ namespace SampleWebAppDotNet8.Controllers
       }
       catch (Exception ex)
       {
-        return SaasusApiHelpers.HandleApiExceptionMvc(ex, this);
+        _logger.LogError(ex, "Failed to update metering count now");
+        return StatusCode(500, new { error = "Failed to update metering count now" });
+      }
+    }
+
+    /// <summary>
+    /// 料金プラン一覧取得
+    /// </summary>
+    [HttpGet("/pricing_plans")]
+    public async Task<IActionResult> GetPricingPlans()
+    {
+      try
+      {
+        // 1. 認証チェック
+        var authApiClientConfig = SaasusApiHelpers.CreateClientConfiguration(c => c.GetAuthApiClientConfig(), HttpContext);
+        var userInfoApi = new UserInfoApi(authApiClientConfig);
+        var idToken = SaasusApiHelpers.GetBearerToken(HttpContext);
+        if (string.IsNullOrEmpty(idToken))
+          return Unauthorized();
+        var userInfo = await userInfoApi.GetUserInfoAsync(idToken);
+
+        // 2. 料金プラン一覧を取得
+        var pricingConfig = SaasusApiHelpers.CreateClientConfiguration(c => c.GetPricingApiClientConfig(), HttpContext);
+        var plansApi = new PricingPlansApi(pricingConfig);
+        var plans = await plansApi.GetPricingPlansAsync();
+
+        // JSON形式でレスポンスを返す
+        var jsonResponse = JsonConvert.SerializeObject(plans.VarPricingPlans);
+        return Content(jsonResponse, "application/json");
+      }
+      catch (Exception ex)
+      {
+        _logger.LogError(ex, "Failed to get pricing plans");
+        return StatusCode(500, new { detail = "Internal server error" });
+      }
+    }
+
+    /// <summary>
+    /// 税率一覧取得
+    /// </summary>
+    [HttpGet("/tax_rates")]
+    public async Task<IActionResult> GetTaxRates()
+    {
+      try
+      {
+        // 1. 認証チェック
+        var authApiClientConfig = SaasusApiHelpers.CreateClientConfiguration(c => c.GetAuthApiClientConfig(), HttpContext);
+        var userInfoApi = new UserInfoApi(authApiClientConfig);
+        var idToken = SaasusApiHelpers.GetBearerToken(HttpContext);
+        if (string.IsNullOrEmpty(idToken))
+          return Unauthorized();
+        var userInfo = await userInfoApi.GetUserInfoAsync(idToken);
+
+        // 2. 税率一覧を取得
+        var pricingConfig = SaasusApiHelpers.CreateClientConfiguration(c => c.GetPricingApiClientConfig(), HttpContext);
+        var taxRatesApi = new TaxRateApi(pricingConfig);
+        var taxRates = await taxRatesApi.GetTaxRatesAsync();
+
+        // JSON形式でレスポンスを返す
+        var jsonResponse = JsonConvert.SerializeObject(taxRates.VarTaxRates);
+        return Content(jsonResponse, "application/json");
+      }
+      catch (Exception ex)
+      {
+        _logger.LogError(ex, "Failed to get tax rates");
+        return StatusCode(500, new { detail = "Internal server error" });
+      }
+    }
+
+    /// <summary>
+    /// テナントプラン情報取得
+    /// </summary>
+    [HttpGet("/tenants/{tenantId}/plan")]
+    public async Task<IActionResult> GetTenantPlanInfo([FromRoute] string tenantId)
+    {
+      try
+      {
+        if (string.IsNullOrWhiteSpace(tenantId))
+        {
+          return BadRequest(new { error = "tenant_id is required" });
+        }
+
+        // 1. 認証・認可チェック
+        var authApiClientConfig = SaasusApiHelpers.CreateClientConfiguration(c => c.GetAuthApiClientConfig(), HttpContext);
+        var userInfoApi = new UserInfoApi(authApiClientConfig);
+        var idToken = SaasusApiHelpers.GetBearerToken(HttpContext);
+        if (string.IsNullOrEmpty(idToken))
+          return Unauthorized();
+        var userInfo = await userInfoApi.GetUserInfoAsync(idToken);
+
+        if (!HasBillingAccess(userInfo, tenantId))
+        {
+          return StatusCode(403, new { error = "Insufficient permissions" });
+        }
+
+        // 2. テナント詳細情報を取得
+        var tenantApi = new TenantApi(authApiClientConfig);
+        var tenant = await tenantApi.GetTenantAsync(tenantId);
+
+        // 3. 現在のプランの税率情報を取得（プラン履歴の最新エントリから）
+        string? currentTaxRateId = null;
+        if (tenant.PlanHistories != null && tenant.PlanHistories.Any())
+        {
+          var latestPlanHistory = tenant.PlanHistories.Last();
+          if (!string.IsNullOrEmpty(latestPlanHistory.TaxRateId))
+          {
+            currentTaxRateId = latestPlanHistory.TaxRateId;
+          }
+        }
+
+        // 4. レスポンスを構築
+        var response = new Dictionary<string, object?>
+        {
+          ["id"] = tenant.Id,
+          ["name"] = tenant.Name,
+          ["plan_id"] = tenant.PlanId,
+          ["tax_rate_id"] = currentTaxRateId,
+          ["plan_reservation"] = null
+        };
+
+        // 5. 予約情報がある場合は追加
+        if (tenant.UsingNextPlanFrom > 0)
+        {
+          var planReservation = new Dictionary<string, object?>
+          {
+            ["next_plan_id"] = tenant.NextPlanId,
+            ["using_next_plan_from"] = tenant.UsingNextPlanFrom,
+            ["next_plan_tax_rate_id"] = tenant.NextPlanTaxRateId
+          };
+          response["plan_reservation"] = planReservation;
+        }
+
+        return Ok(response);
+      }
+      catch (Exception ex)
+      {
+        _logger.LogError(ex, "Failed to retrieve tenant detail");
+        return StatusCode(500, new { error = "Failed to retrieve tenant detail" });
+      }
+    }
+
+    /// <summary>
+    /// テナントプラン更新
+    /// </summary>
+    [HttpPut("/tenants/{tenantId}/plan")]
+    public async Task<IActionResult> UpdateTenantPlan(
+        [FromRoute] string tenantId,
+        [FromBody] UpdateTenantPlanRequest request)
+    {
+      try
+      {
+        if (string.IsNullOrWhiteSpace(tenantId))
+        {
+          return BadRequest(new { error = "tenant_id is required" });
+        }
+
+        // 1. 認証・認可チェック
+        var authApiClientConfig = SaasusApiHelpers.CreateClientConfiguration(c => c.GetAuthApiClientConfig(), HttpContext);
+        var userInfoApi = new UserInfoApi(authApiClientConfig);
+        var idToken = SaasusApiHelpers.GetBearerToken(HttpContext);
+        if (string.IsNullOrEmpty(idToken))
+          return Unauthorized();
+        var userInfo = await userInfoApi.GetUserInfoAsync(idToken);
+
+        if (!HasBillingAccess(userInfo, tenantId))
+        {
+          return StatusCode(403, new { error = "Insufficient permissions" });
+        }
+
+        // 2. テナントプランを更新
+        var tenantApi = new TenantApi(authApiClientConfig);
+        var updateParam = new authapi.Model.PlanReservation();
+
+        // NextPlanIdが指定されている場合のみ設定（プラン解除時は空文字列またはnull）
+        if (!string.IsNullOrEmpty(request.NextPlanId))
+        {
+          updateParam.NextPlanId = request.NextPlanId;
+        }
+
+        // 税率IDが指定されている場合のみ設定
+        if (!string.IsNullOrEmpty(request.TaxRateId))
+        {
+          updateParam.NextPlanTaxRateId = request.TaxRateId;
+        }
+
+        // using_next_plan_fromが指定されている場合のみ設定
+        if (request.UsingNextPlanFrom.HasValue && request.UsingNextPlanFrom.Value > 0)
+        {
+          updateParam.UsingNextPlanFrom = (int)request.UsingNextPlanFrom.Value;
+        }
+
+        await tenantApi.UpdateTenantPlanAsync(tenantId, updateParam);
+
+        return Ok(new { message = "Tenant plan updated successfully" });
+      }
+      catch (Exception ex)
+      {
+        _logger.LogError(ex, "Failed to update tenant plan");
+        return StatusCode(500, new { error = "Failed to update tenant plan" });
       }
     }
 
@@ -626,5 +829,20 @@ namespace SampleWebAppDotNet8.Controllers
 
     [Range(0, int.MaxValue, ErrorMessage = "Count must be greater than or equal to 0")]
     public int Count { get; set; }
+  }
+
+  /// <summary>
+  /// テナントプラン更新リクエスト
+  /// </summary>
+  public class UpdateTenantPlanRequest
+  {
+    [JsonPropertyName("next_plan_id")]
+    public string? NextPlanId { get; set; }
+
+    [JsonPropertyName("tax_rate_id")]
+    public string? TaxRateId { get; set; }
+
+    [JsonPropertyName("using_next_plan_from")]
+    public long? UsingNextPlanFrom { get; set; }
   }
 }

@@ -47,8 +47,8 @@ namespace SampleWebAppDotNet48.Controllers
             }
             catch (Exception ex)
             {
-                var (status, body) = SaasusApiHelpers.HandleApiException(ex);
-                return Content(status, body);
+                System.Diagnostics.Debug.WriteLine($"Failed to get credentials: {ex.Message}");
+                return Content(HttpStatusCode.InternalServerError, new { error = "Failed to get credentials" });
             }
         }
 
@@ -73,8 +73,8 @@ namespace SampleWebAppDotNet48.Controllers
             }
             catch (Exception ex)
             {
-                var (status, body) = SaasusApiHelpers.HandleApiException(ex);
-                return Content(status, body);
+                System.Diagnostics.Debug.WriteLine($"Failed to refresh credentials: {ex.Message}");
+                return Content(HttpStatusCode.InternalServerError, new { error = "Failed to refresh credentials" });
             }
         }
 
@@ -94,8 +94,8 @@ namespace SampleWebAppDotNet48.Controllers
             }
             catch (Exception ex)
             {
-                var (status, body) = SaasusApiHelpers.HandleApiException(ex);
-                return Content(status, body);
+                System.Diagnostics.Debug.WriteLine($"Failed to get user info: {ex.Message}");
+                return Content(HttpStatusCode.InternalServerError, new { error = "Failed to get user info" });
             }
         }
 
@@ -143,8 +143,8 @@ namespace SampleWebAppDotNet48.Controllers
             }
             catch (Exception ex)
             {
-                var (status, body) = SaasusApiHelpers.HandleApiException(ex);
-                return Content(status, body);
+                System.Diagnostics.Debug.WriteLine($"Failed to get users: {ex.Message}");
+                return Content(HttpStatusCode.InternalServerError, new { error = "Failed to get users" });
             }
         }
 
@@ -207,8 +207,8 @@ namespace SampleWebAppDotNet48.Controllers
             }
             catch (Exception ex)
             {
-                var (status, body) = SaasusApiHelpers.HandleApiException(ex);
-                return Content(status, body);
+                System.Diagnostics.Debug.WriteLine($"Failed to get tenant attributes: {ex.Message}");
+                return Content(HttpStatusCode.InternalServerError, new { error = "Failed to get tenant attributes" });
             }
         }
 
@@ -228,8 +228,8 @@ namespace SampleWebAppDotNet48.Controllers
             }
             catch (Exception ex)
             {
-                var (status, body) = SaasusApiHelpers.HandleApiException(ex);
-                return Content(status, body);
+                System.Diagnostics.Debug.WriteLine($"Failed to get user attributes: {ex.Message}");
+                return Content(HttpStatusCode.InternalServerError, new { error = "Failed to get user attributes" });
             }
         }
 
@@ -262,8 +262,8 @@ namespace SampleWebAppDotNet48.Controllers
             }
             catch (Exception ex)
             {
-                var (status, body) = SaasusApiHelpers.HandleApiException(ex);
-                return Content(status, body);
+                System.Diagnostics.Debug.WriteLine($"Failed to get pricing plan: {ex.Message}");
+                return Content(HttpStatusCode.InternalServerError, new { error = "Failed to get pricing plan" });
             }
         }
 
@@ -354,8 +354,8 @@ namespace SampleWebAppDotNet48.Controllers
             }
             catch (Exception ex)
             {
-                var (status, body) = SaasusApiHelpers.HandleApiException(ex);
-                return Content(status, body);
+                System.Diagnostics.Debug.WriteLine($"Failed to register user: {ex.Message}");
+                return Content(HttpStatusCode.InternalServerError, new { error = "Failed to register user" });
             }
         }
 
@@ -416,8 +416,8 @@ namespace SampleWebAppDotNet48.Controllers
             }
             catch (Exception ex)
             {
-                var (status, body) = SaasusApiHelpers.HandleApiException(ex);
-                return Content(status, body);
+                System.Diagnostics.Debug.WriteLine($"Failed to delete user: {ex.Message}");
+                return Content(HttpStatusCode.InternalServerError, new { error = "Failed to delete user" });
             }
         }
 
@@ -471,8 +471,8 @@ namespace SampleWebAppDotNet48.Controllers
             }
             catch (Exception ex)
             {
-                var (status, body) = SaasusApiHelpers.HandleApiException(ex);
-                return Content(status, body);
+                System.Diagnostics.Debug.WriteLine($"Failed to get delete user log: {ex.Message}");
+                return Content(HttpStatusCode.InternalServerError, new { error = "Failed to get delete user log" });
             }
         }
 
@@ -492,8 +492,8 @@ namespace SampleWebAppDotNet48.Controllers
             }
             catch (Exception ex)
             {
-                var (status, body) = SaasusApiHelpers.HandleApiException(ex);
-                return Content(status, body);
+                System.Diagnostics.Debug.WriteLine($"Failed to get tenant attributes list: {ex.Message}");
+                return Content(HttpStatusCode.InternalServerError, new { error = "Failed to get tenant attributes list" });
             }
         }
 
@@ -595,8 +595,8 @@ namespace SampleWebAppDotNet48.Controllers
             }
             catch (Exception ex)
             {
-                var (status, body) = SaasusApiHelpers.HandleApiException(ex);
-                return Content(status, body);
+                System.Diagnostics.Debug.WriteLine($"Failed to self sign up: {ex.Message}");
+                return Content(HttpStatusCode.InternalServerError, new { error = "Failed to self sign up" });
             }
         }
 
@@ -655,8 +655,8 @@ namespace SampleWebAppDotNet48.Controllers
             }
             catch (Exception ex)
             {
-                var (status, body) = SaasusApiHelpers.HandleApiException(ex);
-                return Content(status, body);
+                System.Diagnostics.Debug.WriteLine($"Failed to get invitations: {ex.Message}");
+                return Content(HttpStatusCode.InternalServerError, new { error = "Failed to get invitations" });
             }
         }
 
@@ -703,8 +703,8 @@ namespace SampleWebAppDotNet48.Controllers
             }
             catch (Exception ex)
             {
-                var (status, body) = SaasusApiHelpers.HandleApiException(ex);
-                return Content(status, body);
+                System.Diagnostics.Debug.WriteLine($"Failed to invite user: {ex.Message}");
+                return Content(HttpStatusCode.InternalServerError, new { error = "Failed to invite user" });
             }
         }
 
@@ -734,8 +734,8 @@ namespace SampleWebAppDotNet48.Controllers
             }
             catch (Exception ex)
             {
-                var (status, body) = SaasusApiHelpers.HandleApiException(ex);
-                return Content(status, body);
+                System.Diagnostics.Debug.WriteLine($"Failed to get MFA status: {ex.Message}");
+                return Content(HttpStatusCode.InternalServerError, new { error = "Failed to get MFA status" });
             }
         }
 
@@ -776,8 +776,8 @@ namespace SampleWebAppDotNet48.Controllers
             }
             catch (Exception ex)
             {
-                var (status, body) = SaasusApiHelpers.HandleApiException(ex);
-                return Content(status, body);
+                System.Diagnostics.Debug.WriteLine($"Failed to setup MFA: {ex.Message}");
+                return Content(HttpStatusCode.InternalServerError, new { error = "Failed to setup MFA" });
             }
         }
 
@@ -814,8 +814,8 @@ namespace SampleWebAppDotNet48.Controllers
             }
             catch (Exception ex)
             {
-                var (status, body) = SaasusApiHelpers.HandleApiException(ex);
-                return Content(status, body);
+                System.Diagnostics.Debug.WriteLine($"Failed to verify MFA: {ex.Message}");
+                return Content(HttpStatusCode.InternalServerError, new { error = "Failed to verify MFA" });
             }
         }
 
@@ -839,8 +839,8 @@ namespace SampleWebAppDotNet48.Controllers
             }
             catch (Exception ex)
             {
-                var (status, body) = SaasusApiHelpers.HandleApiException(ex);
-                return Content(status, body);
+                System.Diagnostics.Debug.WriteLine($"Failed to enable MFA: {ex.Message}");
+                return Content(HttpStatusCode.InternalServerError, new { error = "Failed to enable MFA" });
             }
         }
 
@@ -864,8 +864,8 @@ namespace SampleWebAppDotNet48.Controllers
             }
             catch (Exception ex)
             {
-                var (status, body) = SaasusApiHelpers.HandleApiException(ex);
-                return Content(status, body);
+                System.Diagnostics.Debug.WriteLine($"Failed to disable MFA: {ex.Message}");
+                return Content(HttpStatusCode.InternalServerError, new { error = "Failed to disable MFA" });
             }
         }
 
