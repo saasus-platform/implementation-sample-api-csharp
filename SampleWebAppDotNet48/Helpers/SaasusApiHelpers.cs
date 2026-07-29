@@ -36,6 +36,13 @@ namespace SampleWebAppDotNet48.Helpers
         ((dynamic)client).SetReferer(request.Headers.Referrer.ToString());
       }
 
+      // X-SaaSus-Trace-Id
+      if (request.Headers.TryGetValues("X-Saasus-Trace-Id", out var traceId) &&
+          traceId.Any())
+      {
+        ((dynamic)client).SetXSaaSusTraceId(traceId.First());
+      }
+
       return client;
     }
 
