@@ -41,7 +41,7 @@ namespace SampleWebAppDotNet48
         {
             HttpContext.Current.Response.Headers.Add("Access-Control-Allow-Origin", "http://localhost:3000"); // 許可するオリジン
             HttpContext.Current.Response.Headers.Add("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-            HttpContext.Current.Response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, x-saasus-referer, X-Access-Token");
+            HttpContext.Current.Response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, x-saasus-referer, X-Access-Token, X-Saasus-Trace-Id");
             HttpContext.Current.Response.Headers.Add("Access-Control-Allow-Credentials", "true");
 
             // OPTIONSリクエストへの対応（プリフライトリクエスト）
